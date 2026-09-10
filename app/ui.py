@@ -182,6 +182,20 @@ CSS = f"""
   [data-testid="stExpander"] {{
     border: 1px solid var(--line); border-radius: 13px; background: var(--card);
   }}
+  /* --------------------------------------------------------------- overflow
+     One rule for the whole app: nothing is ever silently cut. If content is
+     bigger than the box it sits in, the box scrolls. Rounded corners are not
+     worth content a reader cannot reach, which is what overflow:hidden on these
+     cards cost -- clipped EXPLAIN plans, half-sliced axis labels, and tables
+     with their scrollbars removed. */
+  [data-testid="stDataFrame"], [data-testid="stTable"], [data-testid="stJson"],
+  [data-testid="stExpanderDetails"], [data-testid="stPlotlyChart"],
+  [data-testid="stVerticalBlock"], [data-testid="stHorizontalBlock"],
+  [data-testid="stMetric"] {{ max-width: 100%; }}
+
+  [data-testid="stTable"], [data-testid="stJson"],
+  [data-testid="stExpanderDetails"] {{ overflow-x: auto; }}
+
   /* Plans and wide SQL must scroll sideways rather than be cut off. */
   [data-testid="stCode"], [data-testid="stCode"] pre,
   [data-testid="stExpander"] pre, .stCodeBlock pre {{
