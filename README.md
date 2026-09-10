@@ -1,3 +1,5 @@
+<img src="app/static/logo.svg" width="66" alt="RetailMind">
+
 # RetailMind
 
 **[Live demo](https://retailmind-komalpreet.streamlit.app)** · [Query Lab](https://retailmind-komalpreet.streamlit.app/Query_Lab)

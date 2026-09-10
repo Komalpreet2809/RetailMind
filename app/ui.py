@@ -29,11 +29,21 @@ values are legible another way. Every chart here that reaches four series has a
 table beneath it, so that relief holds.
 """
 
+import base64
 import datetime as dt
+import pathlib
 import streamlit as st
 
 import db
 import queries as q
+
+STATIC = pathlib.Path(__file__).parent / "static"
+FAVICON = STATIC / "favicon.png"
+
+# The mark is inlined as a data URI so the sidebar does not depend on Streamlit
+# serving a static file, which it only does when staticServing is enabled.
+_LOGO_B64 = base64.b64encode((STATIC / "logo.svg").read_bytes()).decode()
+LOGO_URI = f"data:image/svg+xml;base64,{_LOGO_B64}"
 
 # --------------------------------------------------------------------- interface
 INK = "#0E0F10"
@@ -193,7 +203,7 @@ CSS = f"""
     content: "RETAILMIND";
     display: block; color: #fff; font-size: .95rem; font-weight: 680;
     letter-spacing: .01em; padding: .1rem .6rem .1rem 2.55rem; margin-bottom: .9rem;
-    background-image: linear-gradient(var(--lime), var(--lime));
+    background-image: url("{LOGO_URI}");
     background-repeat: no-repeat; background-size: 30px 30px;
     background-position: left center; line-height: 30px;
   }}
@@ -232,8 +242,11 @@ CSS = f"""
 
 def boot():
     """Called once, from the entry point, before any view runs."""
-    st.set_page_config(page_title="RetailMind", page_icon="◆",
-                       layout="wide", initial_sidebar_state="expanded")
+    st.set_page_config(
+        page_title="RetailMind",
+        page_icon=str(FAVICON) if FAVICON.exists() else "◆",
+        layout="wide", initial_sidebar_state="expanded",
+    )
     st.markdown(CSS, unsafe_allow_html=True)
 
 

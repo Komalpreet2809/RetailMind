@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="RetailMind">
+  <!-- Lime plate, ink glyph: the one pairing on this brand that stays legible at
+       any size (~16:1). Three ascending bars read as "analytics" instantly and
+       survive being scaled down to a 16px favicon, which a monogram would not. -->
+  <rect width="64" height="64" rx="15" fill="#DDF247"/>
+  <rect x="14" y="35" width="9" height="16" rx="4.5" fill="#0E0F10"/>
+  <rect x="27.5" y="26" width="9" height="25" rx="4.5" fill="#0E0F10"/>
+  <rect x="41" y="14" width="9" height="37" rx="4.5" fill="#0E0F10"/>
+</svg>
