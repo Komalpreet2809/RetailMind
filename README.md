@@ -4,10 +4,10 @@
 
 **[Live demo](https://retailmind-komalpreet.streamlit.app)** · [Query Lab](https://retailmind-komalpreet.streamlit.app/Query_Lab)
 
-A retail customer analytics warehouse — **9.4M orders, 300k customers, three years** of
+A retail customer analytics warehouse — **8.9M orders, 300k customers, three years** of
 Postgres — where the SQL is on show. Every number in the dashboard opens to reveal the
 query that produced it, and a **Query Lab** documents the five queries that were too slow
-at nine million rows, what the planner was doing wrong, and what fixed them.
+at that size, what the planner was doing wrong, and what fixed them.
 
 Built around the questions a retail CEO actually asks: *why are customers leaving, which
 ones should we target, and which campaigns actually made money?*
@@ -21,11 +21,11 @@ performance never matters. On 50k rows every query is fast, even a badly written
 so nothing is learned and nothing is proved.
 
 This one is deliberately large enough to hurt. Building it, three dashboard queries took
-6–9 seconds each, a correlated subquery took 1.4 seconds, and a missing index turned a
+6–9 seconds each, a correlated subquery took 2.2 seconds, and a missing index turned a
 simple join into a full-table hash build. All of that is documented rather than quietly
 fixed.
 
-## The five pages
+## The pages
 
 | Page | Question it answers |
 |---|---|
@@ -59,7 +59,7 @@ as row count, so the pair is not a scaling curve and the page says so.
 | Brand revenue for a date range | 128 ms | 23 ms | **6x** | Composite index, equality column first |
 | One month out of three years | 98 ms | 59 ms | **2x** | Range partitioning, pruned at plan time |
 
-Plus the dashboard itself: aggregating 9.4M orders on every page load cost **~26 seconds
+Plus the dashboard itself: aggregating 8.9M orders on every page load cost **~26 seconds
 across the five pages**. Materialized rollups brought that to **401 ms** — a 65× cut — by
 not recomputing history that cannot change.
 
@@ -102,9 +102,10 @@ RFM split, so customers here carry latent traits and their orders fall out of th
 - **Campaigns with real holdouts** — treated customers genuinely receive incremental
   orders, and two campaign types are deliberately given near-zero lift
 
-That last one is what makes the campaign page worth reading: win-back campaigns open at
-44% and convert 7.10% against a holdout of 6.81%. A **0.29pp lift** — they have been taking
-credit for orders that were already coming.
+That last one is what makes the campaign page worth reading: win-back campaigns have the
+second-highest open rate at **44%** and convert **27.65%** against a holdout of **27.91%** —
+a lift of **−0.26pp**, which is to say none at all. They have been taking credit for orders
+that were already coming, while loyalty offers clear their control by **5.9pp**.
 
 ## Running it
 
@@ -112,7 +113,7 @@ credit for orders that were already coming.
 docker compose up -d                      # Postgres 16 on :5433
 pip install -r requirements.txt
 
-python scripts/generate.py                # schema + 9.4M rows, ~2 min
+python scripts/generate.py                # schema + ~8.9M rows, ~2 min
 docker exec -i retailmind-db psql -U retail -d retailmind -f - < sql/04_partition.sql
 docker exec -i retailmind-db psql -U retail -d retailmind -f - < sql/05_rollups.sql
 python scripts/benchmark.py               # regenerates data/benchmarks.json
@@ -131,7 +132,9 @@ sql/05_rollups.sql       materialized views behind the dashboard
 scripts/generate.py      behavioural data generator
 scripts/benchmark.py     Query Lab harness — drops the fix, measures, applies it, measures
 app/queries.py           every query the dashboard runs, kept in one readable place
-app/pages/               the five pages
+app/views/               the six pages
+app/plandoc.py           plan-analysis rules behind the Plan Doctor
+scripts/scaling.py       the same queries measured at four warehouse sizes
 ```
 
 ## Stack

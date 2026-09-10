@@ -1,6 +1,10 @@
-streamlit>=1.40
-psycopg2-binary>=2.9
-pandas>=2.2
-numpy>=1.26
-plotly>=5.22
-SQLAlchemy>=2.0
+# Upper bounds are deliberate. Streamlit Cloud resolves these fresh on every
+# build, so an unpinned dependency means a major release can change the deployed
+# app without a commit. Verified against the versions in the comments below;
+# patches and minors are allowed through, majors are not.
+streamlit>=1.44,<2        # 1.63.0 tested; theme.sidebar needs >= 1.44
+psycopg2-binary>=2.9,<3   # 2.9.13 tested
+pandas>=2.2,<4            # 3.0.5 tested
+numpy>=1.26,<3            # 2.5.3 tested
+plotly>=5.22,<8           # 7.0.0 tested
+SQLAlchemy>=2.0,<3        # 2.0.52 tested
