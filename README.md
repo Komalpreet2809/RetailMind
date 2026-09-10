@@ -60,7 +60,7 @@ as row count, so the pair is not a scaling curve and the page says so.
 | One month out of three years | 98 ms | 59 ms | **2x** | Range partitioning, pruned at plan time |
 
 Plus the dashboard itself: aggregating 8.9M orders on every page load cost **~26 seconds
-across the five pages**. Materialized rollups brought that to **401 ms** — a 65× cut — by
+across the five dashboard pages**. Materialized rollups brought that to **401 ms** — a 65× cut — by
 not recomputing history that cannot change.
 
 

@@ -1,13 +1,13 @@
 -- RetailMind :: dashboard rollups
 --
--- Why these exist. Once the warehouse hit 9.4M orders, the dashboard queries
+-- Why these exist. Once the warehouse hit ~9M orders, the dashboard queries
 -- themselves became the performance problem: the monthly trend took 6.2s, the
 -- brand split 8.6s, and the cohort grid 7.6s. Every one of those is a full
 -- aggregate over the whole fact table, and no index fixes that -- an index helps
 -- you find rows, and these queries genuinely need all of them.
 --
 -- The fix is the one a warehouse actually uses: stop recomputing history on every
--- page load. History does not change. These materialized views collapse 9.4M
+-- page load. History does not change. These materialized views collapse ~9M
 -- order rows into a few thousand aggregate rows, refreshed on a schedule rather
 -- than on every click.
 --
@@ -22,7 +22,7 @@
 -- need a different shape (or HyperLogLog sketches).
 
 -- --------------------------------------------------------------------- per customer
--- Powers RFM, repeat rate and CLV. 300k rows instead of 9.4M.
+-- Powers RFM, repeat rate and CLV. 300k rows instead of ~9M.
 DROP MATERIALIZED VIEW IF EXISTS mv_customer CASCADE;
 CREATE MATERIALIZED VIEW mv_customer AS
 SELECT

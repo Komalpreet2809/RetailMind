@@ -8,7 +8,7 @@ both permanent, both sign in with GitHub.
 > deployment target. Hugging Face moved Docker Spaces behind a paid plan in July
 > 2026, so it is no longer the hosted path — but it is still the fastest way to
 > stand the whole project up locally, and `docker run -p 7860:7860` gives you the
-> full 9.4M-row build with nothing else installed.
+> full ~9M-row build with nothing else installed.
 
 ---
 
@@ -29,7 +29,7 @@ psql "$RETAILMIND_DSN" -f sql/05_rollups.sql
 python scripts/benchmark.py
 ```
 
-**On sizing.** The free tier is 0.5 GB. A 9.4M-order build is 1.77 GB, so the
+**On sizing.** The free tier is 0.5 GB. A ~9M-order build is ~1.8 GB, so the
 hosted copy runs ~3.3M orders and omits `sql/04_partition.sql` — the partitioned
 copy of the fact table would double storage for one demonstration. The Query Lab
 detects its absence and says so rather than offering a button that fails.
@@ -90,5 +90,5 @@ python scripts/scaling.py        # -> data/scaling.json  (15-20 min, rebuilds 4x
 ```bash
 docker build -t retailmind .
 docker run --rm -p 7860:7860 retailmind
-# http://localhost:7860 -- full 9.4M rows, no external database
+# http://localhost:7860 -- the full build, no external database
 ```

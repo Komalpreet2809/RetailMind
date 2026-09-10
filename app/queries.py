@@ -12,7 +12,7 @@ Two decisions worth knowing about before reading these:
    the lapsed bucket and quietly break RFM.
 
 2. Most of these read materialized views rather than the fact table. Aggregating
-   9.4M orders on every page load took 6-9 seconds per chart, and no index fixes
+   8.9M orders on every page load took 6-9 seconds per chart, and no index fixes
    that -- these queries genuinely need every row, so the answer is to stop
    recomputing history that cannot change. sql/05_rollups.sql holds the
    definitions, and BEFORE_ROLLUP below keeps the original full-scan versions so
@@ -216,7 +216,7 @@ SELECT
 
 # --------------------------------------------------------------------- the old path
 # Kept deliberately. These are the queries the dashboard ran before the rollups
-# existed, with the times they took against 9.4M orders. The Query Lab renders
+# existed, with the times they took against the full local build. The Query Lab renders
 # them so the cost of the original approach stays visible rather than being
 # quietly deleted along with the problem.
 BEFORE_ROLLUP = {

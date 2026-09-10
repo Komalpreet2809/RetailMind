@@ -40,8 +40,8 @@ PAIRS = [
         "question": "What did Fabrique sell during the Diwali window?",
         "lesson": "Composite index, equality column first",
         "diagnosis": (
-            "With no usable index Postgres has one option: read all 10M rows and "
-            "throw away 99% of them. The filter is an equality on brand_id plus a "
+            "With no usable index Postgres has one option: read every row in the "
+            "table and throw away almost all of them. The filter is an equality on brand_id plus a "
             "range on order_date, so a composite index on (brand_id, order_date) "
             "lets it seek straight to the matching slice. Column order matters -- "
             "equality first, range second. Reversed, the index can still be used "
@@ -115,7 +115,7 @@ PAIRS = [
             "creates an index only for the primary key and unique constraints -- "
             "never for the referencing side. Without it, joining a few thousand "
             "platinum Bengaluru customers to the fact table forces a full scan and a hash "
-            "build over all 10M rows. With the index the planner switches to a "
+            "build over the entire table. With the index the planner switches to a "
             "nested loop that touches only the matching orders."
         ),
         "drop": ["DROP INDEX IF EXISTS idx_orders_customer"],
