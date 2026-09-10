@@ -1,5 +1,7 @@
 # RetailMind
 
+**[Live demo](https://retailmind-komalpreet.streamlit.app)** · [Query Lab](https://retailmind-komalpreet.streamlit.app/Query_Lab)
+
 A retail customer analytics warehouse — **9.4M orders, 300k customers, three years** of
 Postgres — where the SQL is on show. Every number in the dashboard opens to reveal the
 query that produced it, and a **Query Lab** documents the five queries that were too slow
@@ -33,17 +35,26 @@ fixed.
 
 ## Query Lab results
 
-Measured against 9.4M orders, median of 3 runs, warm cache on both sides. The "before"
-state is produced by genuinely dropping the index — not by hinting the planner away from
-it — so the plans shown are what Postgres actually chose.
+Measured against 9,414,749 orders, median of 3 runs, warm cache on
+both sides. Timing is the server's own reported execution time from `EXPLAIN ANALYZE`, not
+client wall clock — against a managed database on another continent the round trip alone is
+~200ms and would bury every result in latency. The "before" state is produced by genuinely
+dropping the index, not by hinting the planner away from it, so the plans shown are what
+Postgres actually chose.
+
+The [live demo](https://retailmind-komalpreet.streamlit.app) runs a smaller 3,281,497-order
+copy on a free 0.5 GB tier and re-runs the same suite there (6,793 ms →
+85 ms on the worst offender, 80×).
+Both sets are shown in the app, side by side and labelled — they differ by hardware as well
+as row count, so the pair is not a scaling curve and the page says so.
 
 | Query | Before | After | Gain | The lesson |
 |---|---|---|---|---|
-| Each customer's most recent order | 1,360 ms | 38 ms | **35×** | Correlated subquery → `DISTINCT ON` |
-| Brand revenue for a date range | 133 ms | 19 ms | **7×** | Composite index, equality column first |
-| Revenue for a single month | 348 ms | 52 ms | **7×** | `extract()` on a column makes it non-sargable |
-| Platinum customers in a city | 176 ms | 48 ms | **4×** | Postgres does not index foreign keys for you |
-| One month out of three years | 83 ms | 46 ms | **2×** | Range partitioning, pruned at plan time |
+| Each customer's most recent order | 5,116 ms | 98 ms | **52×** | Correlated subquery → `DISTINCT ON` |
+| Revenue for a single month | 700 ms | 91 ms | **8×** | `extract()` on a column makes it non-sargable |
+| Top spenders in a city | 602 ms | 113 ms | **5×** | Postgres does not index foreign keys for you |
+| Brand revenue for a date range | 271 ms | 39 ms | **7×** | Composite index, equality column first |
+| One month out of three years | 190 ms | 126 ms | **2×** | Range partitioning, pruned at plan time |
 
 Plus the dashboard itself: aggregating 9.4M orders on every page load cost **~26 seconds
 across the five pages**. Materialized rollups brought that to **401 ms** — a 65× cut — by
