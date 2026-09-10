@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-09-10 13:19:59",
+  "labels": {
+    "composite_index": {
+      "title": "Brand revenue for a date range",
+      "lesson": "Composite index, equality column first"
+    },
+    "correlated_subquery": {
+      "title": "Each customer's most recent order",
+      "lesson": "Per-row correlated subquery to a single ordered pass"
+    },
+    "unindexed_join": {
+      "title": "Top spenders in a city",
+      "lesson": "Postgres does not index foreign keys for you"
+    },
+    "sargable": {
+      "title": "Revenue for a single month",
+      "lesson": "A function on an indexed column throws the index away"
+    }
+  },
+  "points": [
+    {
+      "orders": 98946,
+      "customers": 8000,
+      "results": {
+        "composite_index": {
+          "slow_ms": 3.45,
+          "fast_ms": 0.25
+        },
+        "correlated_subquery": {
+          "slow_ms": 560.39,
+          "fast_ms": 17.43
+        },
+        "unindexed_join": {
+          "slow_ms": 8.59,
+          "fast_ms": 1.44
+        },
+        "sargable": {
+          "slow_ms": 12.1,
+          "fast_ms": 0.58
+        }
+      }
+    },
+    {
+      "orders": 495610,
+      "customers": 30000,
+      "results": {
+        "composite_index": {
+          "slow_ms": 9.9,
+          "fast_ms": 0.86
+        },
+        "correlated_subquery": {
+          "slow_ms": 818.62,
+          "fast_ms": 24.62
+        },
+        "unindexed_join": {
+          "slow_ms": 26.21,
+          "fast_ms": 6.1
+        },
+        "sargable": {
+          "slow_ms": 30.27,
+          "fast_ms": 3.34
+        }
+      }
+    },
+    {
+      "orders": 1940857,
+      "customers": 90000,
+      "results": {
+        "composite_index": {
+          "slow_ms": 28.41,
+          "fast_ms": 4.94
+        },
+        "correlated_subquery": {
+          "slow_ms": 1365.61,
+          "fast_ms": 34.57
+        },
+        "unindexed_join": {
+          "slow_ms": 73.59,
+          "fast_ms": 22.98
+        },
+        "sargable": {
+          "slow_ms": 83.31,
+          "fast_ms": 12.29
+        }
+      }
+    },
+    {
+      "orders": 8880833,
+      "customers": 300000,
+      "results": {
+        "composite_index": {
+          "slow_ms": 136.17,
+          "fast_ms": 21.05
+        },
+        "correlated_subquery": {
+          "slow_ms": 2226.98,
+          "fast_ms": 42.38
+        },
+        "unindexed_join": {
+          "slow_ms": 314.14,
+          "fast_ms": 58.11
+        },
+        "sargable": {
+          "slow_ms": 362.24,
+          "fast_ms": 50.18
+        }
+      }
+    }
+  ]
+}

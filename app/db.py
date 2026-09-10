@@ -1,6 +1,7 @@
 """Connection handling and the query helpers every page uses."""
 
 import os
+import re
 import time
 import pandas as pd
 import psycopg2
@@ -62,6 +63,62 @@ def explain(sql: str, params: dict | None = None) -> str:
     with conn.cursor() as cur:
         cur.execute("EXPLAIN (ANALYZE, BUFFERS) " + sql, params)
         return "\n".join(r[0] for r in cur.fetchall())
+
+
+# ----------------------------------------------------------------------------- safe explain
+# The Plan Doctor page runs SQL typed by whoever is looking at the site, against a
+# live database whose role owns every table in it. Three layers stand between a
+# visitor and damage, because any one of them alone is a bad bet:
+#
+#   1. the statement must parse as a single SELECT or WITH, with no second
+#      statement smuggled in after a semicolon
+#   2. no write keyword may appear anywhere in it, comments stripped first so
+#      "/**/DELETE" does not slip through
+#   3. it runs inside READ ONLY with a statement timeout, so even if 1 and 2 are
+#      wrong Postgres itself refuses the write and kills a runaway query
+#
+# Belt and braces is the right posture here: the first two checks are string
+# matching and string matching against SQL is never airtight. The third is the
+# one that actually holds -- demonstrated during testing, when "SELECT * INTO
+# evil FROM orders" walked straight past the keyword list (INTO was not on it)
+# and was stopped by the read-only transaction instead. INTO is on the list now,
+# but the lesson is that it should never have needed to be.
+_COMMENTS = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
+_WRITES = re.compile(
+    r"\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|"
+    r"vacuum|analyze|reindex|refresh|call|do|set|begin|commit|rollback|"
+    r"lock|prepare|execute|listen|notify|into|merge)\b",
+    re.I,
+)
+
+
+class UnsafeSQL(Exception):
+    pass
+
+
+def safe_explain_json(sql: str, timeout_ms: int = 15000):
+    """EXPLAIN ANALYZE a read-only statement, or refuse to run it at all."""
+    bare = _COMMENTS.sub(" ", sql).strip().rstrip(";").strip()
+    if not bare:
+        raise UnsafeSQL("Nothing to run.")
+    if ";" in bare:
+        raise UnsafeSQL("One statement at a time — remove the semicolon.")
+    if not re.match(r"^\s*(select|with)\b", bare, re.I):
+        raise UnsafeSQL("Only SELECT and WITH queries can be explained here.")
+    hit = _WRITES.search(bare)
+    if hit:
+        raise UnsafeSQL(f"'{hit.group(0)}' is not allowed — this page is read-only.")
+
+    conn = _conn()
+    with conn.cursor() as cur:
+        cur.execute("BEGIN READ ONLY")
+        try:
+            cur.execute(f"SET LOCAL statement_timeout = {int(timeout_ms)}")
+            cur.execute("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + bare)
+            plan = cur.fetchone()[0]
+        finally:
+            cur.execute("ROLLBACK")
+    return plan
 
 
 def sql_panel(sql: str, df: pd.DataFrame | None = None, params: dict | None = None,

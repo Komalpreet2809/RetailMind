@@ -25,7 +25,12 @@ DSN = os.environ.get(
     "RETAILMIND_DSN", "postgresql://retail:retail@localhost:5433/retailmind"
 )
 REPEATS = 3
-OUT = os.path.join(os.path.dirname(__file__), "..", "data", "benchmarks.json")
+# Overridable so a local run does not clobber the hosted results, which are the
+# ones the deployed app reads.
+OUT = os.environ.get(
+    "RM_BENCH_OUT",
+    os.path.join(os.path.dirname(__file__), "..", "data", "benchmarks.json"),
+)
 
 
 PAIRS = [

@@ -31,11 +31,12 @@ fixed.
 | **Segments** | RFM quintile scoring — Champions, Loyal, At Risk, Lost, and what to do about each |
 | **Retention** | Cohort heatmap: who comes back, and does the acquisition month predict it |
 | **Campaigns** | Treated vs holdout, so the answer is incremental revenue rather than response rate |
-| **Query Lab** | Five slow queries, their plans, the diagnosis, and the fix |
+| **Query Lab** | Five slow queries, their plans, the diagnosis, the fix, and how each scales |
+| **Plan Doctor** | Paste any SELECT — it runs EXPLAIN ANALYZE and reports what is wrong |
 
 ## Query Lab results
 
-Measured against 9,414,749 orders, median of 3 runs, warm cache on
+Measured against 8,880,833 orders, median of 3 runs, warm cache on
 both sides. Timing is the server's own reported execution time from `EXPLAIN ANALYZE`, not
 client wall clock — against a managed database on another continent the round trip alone is
 ~200ms and would bury every result in latency. The "before" state is produced by genuinely
@@ -50,15 +51,42 @@ as row count, so the pair is not a scaling curve and the page says so.
 
 | Query | Before | After | Gain | The lesson |
 |---|---|---|---|---|
-| Each customer's most recent order | 5,116 ms | 98 ms | **52×** | Correlated subquery → `DISTINCT ON` |
-| Revenue for a single month | 700 ms | 91 ms | **8×** | `extract()` on a column makes it non-sargable |
-| Top spenders in a city | 602 ms | 113 ms | **5×** | Postgres does not index foreign keys for you |
-| Brand revenue for a date range | 271 ms | 39 ms | **7×** | Composite index, equality column first |
-| One month out of three years | 190 ms | 126 ms | **2×** | Range partitioning, pruned at plan time |
+| Each customer's most recent order | 2,174 ms | 42 ms | **52x** | Correlated subquery -> `DISTINCT ON` |
+| Revenue for a single month | 362 ms | 51 ms | **7x** | `extract()` on a column makes it non-sargable |
+| Top spenders in a city | 301 ms | 60 ms | **5x** | Postgres does not index foreign keys for you |
+| Brand revenue for a date range | 128 ms | 23 ms | **6x** | Composite index, equality column first |
+| One month out of three years | 98 ms | 59 ms | **2x** | Range partitioning, pruned at plan time |
 
 Plus the dashboard itself: aggregating 9.4M orders on every page load cost **~26 seconds
 across the five pages**. Materialized rollups brought that to **401 ms** — a 65× cut — by
 not recomputing history that cannot change.
+
+
+## How they behave as the table grows
+
+The table above is a single before/after. This is the more useful experiment:
+one machine, one build, four warehouse sizes, only the row count changing.
+
+| Query | 99k rows | 8.9M rows | Growth | After the fix |
+|---|---|---|---|---|
+| Brand revenue for a date range | 3 ms | 136 ms | **39x** | 0 -> 21 ms |
+| Each customer's most recent order | 560 ms | 2,227 ms | **4x** | 17 -> 42 ms |
+| Top spenders in a city | 9 ms | 314 ms | **37x** | 1 -> 58 ms |
+| Revenue for a single month | 12 ms | 362 ms | **30x** | 1 -> 50 ms |
+
+The data grew **90x** across those builds. Three of the four
+queries grew 30-40x with it — and the part that matters is where they started: 3ms,
+9ms, 12ms. Nobody notices a 3ms query in review. Those are the ones that ship and
+then take a dashboard down a year later once the table has caught up.
+
+The correlated subquery is the exception, and the more interesting case: it grew
+only 4x because it was **already slow at 99,000 rows**. Its cost is set by how many
+times the subquery executes, which barely moves with table size — so it is the one
+bad query you would actually catch in development. The other three hide until
+production.
+
+After the fix, every one of them is close to flat. That is the objective: cost that
+tracks the rows returned rather than the rows stored.
 
 ## What the data does
 

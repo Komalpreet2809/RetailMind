@@ -116,8 +116,13 @@ def main():
     print("\n  restoring full build (partitions + rollups + benchmarks)")
     psql("sql/04_partition.sql")
     psql("sql/05_rollups.sql")
-    subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "benchmark.py")],
-                   check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(
+        [sys.executable, os.path.join(ROOT, "scripts", "benchmark.py")],
+        check=True, stdout=subprocess.DEVNULL,
+        # benchmarks.json belongs to the hosted database; the local full-scale
+        # run is the comparison set and must not overwrite it.
+        env={**os.environ, "RM_BENCH_OUT": os.path.join(ROOT, "data", "benchmarks_local.json")},
+    )
 
     labels = {p["id"]: {"title": p["title"], "lesson": p["lesson"]}
               for p in bm.PAIRS if p["id"] not in SKIP}

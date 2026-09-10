@@ -130,6 +130,72 @@ for col, r in zip(cols, res):
 
 st.divider()
 
+# --------------------------------------------------------------------- scaling
+scaling = load("scaling.json")
+if scaling and len(scaling.get("points", [])) > 2:
+    pts = scaling["points"]
+    sizes = [p["orders"] for p in pts]
+    grew = sizes[-1] / sizes[0]
+
+    st.subheader("What actually happens as the table grows")
+    ui.sub(
+        "One machine, one build, four warehouse sizes. Unlike the two columns "
+        "above, only one thing changes here — the number of rows — so the shape of "
+        "each line means something."
+    )
+
+    fig = go.Figure()
+    for i, (qid, lab) in enumerate(scaling["labels"].items()):
+        c = ui.PALETTE[i % len(ui.PALETTE)]
+        ys = [p["results"][qid]["slow_ms"] for p in pts if qid in p["results"]]
+        yf = [p["results"][qid]["fast_ms"] for p in pts if qid in p["results"]]
+        fig.add_scatter(x=sizes, y=ys, name=lab["title"], mode="lines+markers",
+                        line=dict(color=c, width=2.5))
+        fig.add_scatter(x=sizes, y=yf, name=f"{lab['title']} (fixed)", mode="lines",
+                        line=dict(color=c, width=1.5, dash="dot"), showlegend=False,
+                        hovertemplate="fixed: %{y:.0f} ms<extra></extra>")
+    fig.update_layout(
+        height=430, margin=dict(l=0, r=0, t=10, b=0),
+        xaxis=dict(title="orders in the warehouse", type="log"),
+        yaxis=dict(title="execution time (ms, log scale)", type="log"),
+        legend=dict(orientation="h", y=-.22, x=0), hovermode="x unified",
+    )
+    st.plotly_chart(fig, width="stretch")
+    st.caption("Solid = before the fix. Dotted = the same query after it.")
+
+    rows = []
+    for qid, lab in scaling["labels"].items():
+        first = pts[0]["results"].get(qid)
+        last = pts[-1]["results"].get(qid)
+        if not (first and last):
+            continue
+        rows.append({
+            "Query": lab["title"],
+            f"{sizes[0] / 1e3:.0f}k rows": f"{first['slow_ms']:,.0f} ms",
+            f"{sizes[-1] / 1e6:.1f}M rows": f"{last['slow_ms']:,.0f} ms",
+            "Growth": f"{last['slow_ms'] / max(first['slow_ms'], 1e-9):.0f}×",
+            "After the fix": f"{first['fast_ms']:,.0f} → {last['fast_ms']:,.0f} ms",
+        })
+    st.dataframe(rows, hide_index=True, width="stretch")
+
+    ui.note(
+        f"The data grew <b>{grew:.0f}×</b> across these four builds. Three of the four "
+        f"queries grew roughly 30–40× with it — and the important part is where they "
+        f"started: 3ms, 9ms, 12ms. Nobody notices a 3ms query. Those are the ones "
+        f"that pass review, ship, and then take a dashboard down eighteen months "
+        f"later when the table has caught up with them.<br><br>"
+        f"The correlated subquery is the exception and worth understanding separately. "
+        f"It grew only 4× — because it was <b>already slow at 99,000 rows</b>. Its cost "
+        f"is set by how many times the subquery runs, which barely changes with table "
+        f"size, so it is the one bad query you would actually catch in development. "
+        f"The others hide until production.<br><br>"
+        f"Every dotted line is close to flat. That is the whole objective: after the "
+        f"fix, cost tracks the rows returned rather than the rows stored."
+    )
+
+    st.caption(f"`scripts/scaling.py` · generated {scaling['generated_at']}")
+    st.divider()
+
 # --------------------------------------------------------------------- detail
 has_part = db.table_exists("orders_part")
 
