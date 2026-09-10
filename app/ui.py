@@ -178,10 +178,16 @@ CSS = f"""
   [data-testid="stPlotlyChart"] > div,
   [data-testid="stPlotlyChart"] .js-plotly-plot,
   [data-testid="stPlotlyChart"] .plot-container {{ width: 100% !important; }}
-  [data-testid="stDataFrame"] {{ border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }}
+  [data-testid="stDataFrame"] {{ border: 1px solid var(--line); border-radius: 14px; }}
   [data-testid="stExpander"] {{
-    border: 1px solid var(--line); border-radius: 13px; background: var(--card); overflow: hidden;
+    border: 1px solid var(--line); border-radius: 13px; background: var(--card);
   }}
+  /* Plans and wide SQL must scroll sideways rather than be cut off. */
+  [data-testid="stCode"], [data-testid="stCode"] pre,
+  [data-testid="stExpander"] pre, .stCodeBlock pre {{
+    overflow-x: auto !important; max-width: 100%;
+  }}
+  [data-testid="stExpander"] [data-testid="stExpanderDetails"] {{ overflow-x: auto; }}
   [data-testid="stExpander"] summary {{ font-size: .875rem; color: var(--ink2); font-weight: 520; }}
   [data-testid="stExpander"] summary:hover {{ color: var(--ink); }}
 
