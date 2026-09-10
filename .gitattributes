@@ -1,0 +1,10 @@
+# The container build runs these on Linux. CRLF line endings turn the shebang
+# into "/usr/bin/env bash\r" and the build dies with "bad interpreter", so the
+# checkout must stay LF regardless of the platform doing the checkout.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.py        text eol=lf
+*.sql       text eol=lf
+*.yml       text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
