@@ -172,8 +172,8 @@ CSS = f"""
   /* ---------------------------------------------------------------- surfaces */
   [data-testid="stPlotlyChart"] {{
     background: var(--card); border: 1px solid var(--line);
-    border-radius: 15px; padding: .9rem 0 .55rem;
-    overflow: hidden; box-sizing: border-box;
+    border-radius: 15px; padding: .9rem 0 .75rem;
+    box-sizing: border-box;
   }}
   [data-testid="stPlotlyChart"] > div,
   [data-testid="stPlotlyChart"] .js-plotly-plot,
@@ -327,7 +327,7 @@ def chart(fig, height: int = 360, legend: bool = True, ygrid: bool = True,
     """
     fig.update_layout(
         height=height,
-        margin=dict(l=18, r=20, t=12, b=8),
+        margin=dict(l=18, r=20, t=12, b=34),
         paper_bgcolor=CARD,
         plot_bgcolor=CARD,
         font=dict(family=FONT, size=12, color=INK_2),
