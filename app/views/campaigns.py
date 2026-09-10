@@ -117,3 +117,5 @@ st.markdown(
     f"control by {hero['lift_pp']:.1f}pp, and keep the holdout in place so the "
     f"next read is just as honest."
 )
+
+ui.footer()

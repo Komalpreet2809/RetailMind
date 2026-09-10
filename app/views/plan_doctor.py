@@ -131,3 +131,5 @@ st.caption(
     "external sorts and multi-batch hashes, lossy bitmap rechecks, and cache miss "
     "ratio across the whole plan."
 )
+
+ui.footer()

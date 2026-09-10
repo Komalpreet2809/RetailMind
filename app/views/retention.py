@@ -83,3 +83,5 @@ st.caption("Retention percentages are meaningless without the denominator.")
 sizes = base.to_frame("customers")
 sizes.index = [d.strftime("%b %Y") for d in sizes.index]
 st.bar_chart(sizes, height=220, color=ui.INK)
+
+ui.footer()

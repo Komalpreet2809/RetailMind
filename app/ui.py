@@ -202,6 +202,14 @@ CSS = f"""
      neither is a Streamlit widget. */
   [data-testid="stSidebar"] {{ border-right: none; }}
 
+  /* Sidebar footer: attribution and links, pinned under the filters. */
+  .rm-foot {{ padding: .2rem .1rem 0; }}
+  .rm-foot .n {{ font-size: .82rem; font-weight: 620; color: #EDEDE8; margin-bottom: .18rem; }}
+  .rm-foot .l {{ font-size: .77rem; margin-bottom: .55rem; }}
+  .rm-foot .l a {{ color: {LIME}; text-decoration: none; border-bottom: 1px solid rgba(221,242,71,.35); }}
+  .rm-foot .l a:hover {{ border-bottom-color: {LIME}; }}
+  .rm-foot .m {{ font-size: .715rem; color: #85857D; line-height: 1.65; }}
+
   /* Brand lockup. Drawn on the nav container because st.navigation emits its
      list before any sidebar content we could write, so a markdown block would
      land underneath the menu. */
@@ -260,6 +268,28 @@ def head(kicker: str, title: str, blurb: str):
         unsafe_allow_html=True,
     )
     sub(blurb)
+
+
+def footer():
+    """
+    Attribution in the sidebar of every page. A portfolio project with no name on
+    it is indistinguishable from a template, and the links are the point: whoever
+    opens this should be one click from the source and from the person.
+    """
+    st.sidebar.divider()
+    st.sidebar.markdown(
+        '<div class="rm-foot">'
+        '<div class="n">Komalpreet Kaur</div>'
+        '<div class="l">'
+        '<a href="https://komalpreet.me" target="_blank">komalpreet.me</a> · '
+        '<a href="https://github.com/Komalpreet2809/RetailMind" target="_blank">Source</a>'
+        '</div>'
+        '<div class="m">Synthetic retail data modelled on Indian omnichannel '
+        'behaviour — heavy-tailed value, festive seasonality, and campaigns with '
+        'real holdout groups.<br>PostgreSQL 17 · Neon · Streamlit</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def note(text: str):

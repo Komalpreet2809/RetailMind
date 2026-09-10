@@ -288,3 +288,5 @@ st.caption(
     + (f" · full-scale build {full['generated_at']}" if comparable else "")
     + " · `scripts/benchmark.py`"
 )
+
+ui.footer()

@@ -93,3 +93,5 @@ c.markdown(
     "**Lost** — cheap channels only. Reacquiring these customers generally costs "
     "more than acquiring a new one, and the campaign page shows exactly that."
 )
+
+ui.footer()

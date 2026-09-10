@@ -126,8 +126,4 @@ with right:
     ui.chart(fig, height=230, legend=False, ygrid=False)
     db.sql_panel(q.CHANNEL_MIX, chan, params, "SQL · channel mix")
 
-st.sidebar.divider()
-st.sidebar.caption(
-    "Synthetic data, modelled on Indian omnichannel retail: heavy-tailed customer "
-    "value, festive seasonality, and campaigns with real holdout groups."
-)
+ui.footer()
