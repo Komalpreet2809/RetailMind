@@ -1,3 +1,15 @@
+---
+title: RetailMind
+emoji: 🛍️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+short_description: A 9.4M-row retail warehouse that shows its query plans
+---
+
 # RetailMind
 
 A retail customer analytics warehouse — **9.4M orders, 300k customers, three years** of
