@@ -195,33 +195,24 @@ CSS = f"""
   [data-testid="stCode"] {{ border-radius: 12px; }}
 
   /* ---------------------------------------------------------------- sidebar */
-  [data-testid="stSidebar"] {{ background: {INK}; border-right: none; }}
-  [data-testid="stSidebar"] * {{ color: #E9E9E4; }}
-  [data-testid="stSidebar"] .block-container {{ padding-top: 1.1rem; }}
+  /* Sidebar colours come from [theme.sidebar] in config.toml, not from here.
+     Overriding widget internals by selector is what made the select values
+     invisible: the surface went dark while the widget kept its light-theme text
+     colour. Only the brand wordmark and the nav plate are styled below, because
+     neither is a Streamlit widget. */
+  [data-testid="stSidebar"] {{ border-right: none; }}
 
+  /* Brand lockup. Drawn on the nav container because st.navigation emits its
+     list before any sidebar content we could write, so a markdown block would
+     land underneath the menu. */
   [data-testid="stSidebarNav"]::before {{
     content: "RETAILMIND";
     display: block; color: #fff; font-size: .95rem; font-weight: 680;
-    letter-spacing: .01em; padding: .1rem .6rem .1rem 2.55rem; margin-bottom: .9rem;
+    letter-spacing: .012em; padding: .1rem .6rem .1rem 2.55rem; margin-bottom: .9rem;
     background-image: url("{LOGO_URI}");
     background-repeat: no-repeat; background-size: 30px 30px;
     background-position: left center; line-height: 30px;
   }}
-
-  [data-testid="stSidebar"] h3 {{
-    color: #6E6E66 !important; font-size: .645rem !important; letter-spacing: .135em;
-    text-transform: uppercase; font-weight: 640 !important; margin-bottom: .3rem !important;
-  }}
-  [data-testid="stSidebar"] h3::before {{ display: none; }}
-  [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {{
-    color: #74746D !important; font-size: .755rem;
-  }}
-  [data-testid="stSidebar"] label p {{ color: #A2A29A !important; font-size: .78rem !important; font-weight: 520; }}
-  [data-testid="stSidebar"] [data-baseweb="select"] > div {{
-    background: {INK_SOFT}; border-color: #2A2B2D; border-radius: 10px; color: #E9E9E4;
-  }}
-  [data-testid="stSidebar"] [data-baseweb="select"] svg {{ fill: #85857D; }}
-  [data-testid="stSidebar"] hr {{ border-color: #232426 !important; }}
 
   /* Active nav is a lime plate with ink text -- the loudest element in the shell
      and, at ~16:1, the most legible one. */

@@ -1,10 +1,21 @@
+# Theming the sidebar through Streamlit rather than through CSS overrides.
+# Styling [data-baseweb="select"] by hand set a dark background but left the
+# widget's own text colour on the light-theme value, so the selected option went
+# invisible. Declaring a sidebar theme lets the framework recolour every widget
+# internal consistently -- inputs, dropdown menus, placeholders and all.
 [theme]
 base = "light"
-primaryColor = "#101112"
-backgroundColor = "#F4F4F1"
+primaryColor = "#0E0F10"
+backgroundColor = "#F2F2EE"
 secondaryBackgroundColor = "#FFFFFF"
-textColor = "#101112"
+textColor = "#0E0F10"
 font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#0E0F10"
+secondaryBackgroundColor = "#191A1C"
+textColor = "#E9E9E4"
+primaryColor = "#DDF247"
 
 [server]
 headless = true
