@@ -146,13 +146,17 @@ CSS = f"""
     border-color: #D3D3C9; transform: translateY(-1px);
   }}
   [data-testid="stMetricValue"] {{
-    font-size: 1.36rem !important; font-weight: 660 !important;
+    font-size: clamp(.98rem, 1.42vw, 1.36rem) !important; font-weight: 660 !important;
     color: var(--ink) !important; letter-spacing: -.028em;
-    white-space: nowrap;
+    white-space: normal; line-height: 1.25;
   }}
-  [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p {{
-    font-size: .668rem !important; font-weight: 620 !important;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--muted) !important;
+  [data-testid="stMetricValue"] > div {{ overflow: visible !important; }}
+  [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p,
+  [data-testid="stMetricLabel"] > div {{
+    font-size: .645rem !important; font-weight: 620 !important;
+    letter-spacing: .085em; text-transform: uppercase; color: var(--muted) !important;
+    white-space: nowrap !important; overflow: visible !important;
+    text-overflow: clip !important; line-height: 1.35;
   }}
   [data-testid="stMetricDelta"] {{ font-size: .755rem !important; color: var(--muted) !important; }}
 
@@ -168,8 +172,12 @@ CSS = f"""
   /* ---------------------------------------------------------------- surfaces */
   [data-testid="stPlotlyChart"] {{
     background: var(--card); border: 1px solid var(--line);
-    border-radius: 15px; padding: 1rem 1.1rem .7rem;
+    border-radius: 15px; padding: .9rem 0 .55rem;
+    overflow: hidden; box-sizing: border-box;
   }}
+  [data-testid="stPlotlyChart"] > div,
+  [data-testid="stPlotlyChart"] .js-plotly-plot,
+  [data-testid="stPlotlyChart"] .plot-container {{ width: 100% !important; }}
   [data-testid="stDataFrame"] {{ border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }}
   [data-testid="stExpander"] {{
     border: 1px solid var(--line); border-radius: 13px; background: var(--card); overflow: hidden;
@@ -313,7 +321,7 @@ def chart(fig, height: int = 360, legend: bool = True, ygrid: bool = True,
     """
     fig.update_layout(
         height=height,
-        margin=dict(l=4, r=8, t=10, b=6),
+        margin=dict(l=18, r=20, t=12, b=8),
         paper_bgcolor=CARD,
         plot_bgcolor=CARD,
         font=dict(family=FONT, size=12, color=INK_2),

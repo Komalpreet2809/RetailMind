@@ -33,13 +33,15 @@ st.header(f"Business health · {brand_label}")
 kpi = db.run(q.KPIS, params).iloc[0]
 rep = db.run(q.REPEAT_RATE, params).iloc[0]
 
-c = st.columns(6)
-c[0].metric("Revenue", db.fmt_inr(kpi["revenue"]))
-c[1].metric("Orders", db.fmt_n(kpi["orders"]))
-c[2].metric("Customers", db.fmt_n(kpi["active_customers"]))
-c[3].metric("Avg order value", db.fmt_inr(kpi["aov"]))
-c[4].metric("Revenue / customer", db.fmt_inr(kpi["revenue_per_customer"]))
-c[5].metric("Repeat rate", f"{rep['repeat_rate_pct']:.1f}%")
+a = st.columns(3)
+a[0].metric("Revenue", db.fmt_inr(kpi["revenue"]))
+a[1].metric("Orders", db.fmt_n(kpi["orders"]))
+a[2].metric("Customers", db.fmt_n(kpi["active_customers"]))
+
+b = st.columns(3)
+b[0].metric("Avg order value", db.fmt_inr(kpi["aov"]))
+b[1].metric("Revenue / customer", db.fmt_inr(kpi["revenue_per_customer"]))
+b[2].metric("Repeat rate", f"{rep['repeat_rate_pct']:.1f}%")
 
 single_pct = 100.0 - float(rep["repeat_rate_pct"])
 ui.note(
@@ -122,7 +124,7 @@ with right:
         textposition="outside", textfont=dict(size=12, color=ui.INK_2),
         hovertemplate="%{y}: ₹%{x:,.0f}<extra></extra>",
     ))
-    fig.update_xaxes(visible=False, range=[0, chan["revenue"].max() * 1.18])
+    fig.update_xaxes(visible=False, range=[0, chan["revenue"].max() * 1.3])
     ui.chart(fig, height=230, legend=False, ygrid=False)
     db.sql_panel(q.CHANNEL_MIX, chan, params, "SQL · channel mix")
 
