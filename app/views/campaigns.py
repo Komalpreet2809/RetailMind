@@ -16,8 +16,7 @@ import ui
 
 params, brand_label = ui.filters(show_dates=False)
 
-st.title("Campaign performance")
-ui.sub(
+ui.head("Incrementality", "Campaign performance", 
     "Every campaign held out a random slice of its audience. Incremental revenue "
     "is the difference in revenue per customer between treated and held-out, "
     "multiplied by the number treated — the part that would not have happened anyway."

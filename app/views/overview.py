@@ -10,22 +10,22 @@ import ui
 
 params, brand_label = ui.filters()
 
-st.title("RetailMind")
-ui.sub(
-    "A retail customer warehouse where the SQL is on show. Every figure below "
-    "opens to reveal the query that produced it — the Query Lab holds the five "
-    "queries that were too slow and what fixed them, and the Plan Doctor will "
-    "read the plan of anything you write yourself."
-)
-
-# --------------------------------------------------------------------- warehouse strip
 stats = db.run(q.WAREHOUSE_STATS).iloc[0]
-c = st.columns(5)
-c[0].metric("Orders", db.fmt_n(stats["orders"]))
-c[1].metric("Customers", db.fmt_n(stats["customers"]))
-c[2].metric("Campaign sends", db.fmt_n(stats["sends"]))
-c[3].metric("Fact table", stats["orders_size"])
-c[4].metric("Database", stats["db_size"])
+
+ui.hero(
+    "RetailMind",
+    "A retail customer warehouse where the SQL is on show. Every figure below "
+    "opens to reveal the query behind it — the Query Lab holds the five queries "
+    "that were too slow and what fixed them, and the Plan Doctor will read the "
+    "plan of anything you write yourself.",
+    chips=[
+        ("Orders", db.fmt_n(stats["orders"])),
+        ("Customers", db.fmt_n(stats["customers"])),
+        ("Campaign sends", db.fmt_n(stats["sends"])),
+        ("Fact table", stats["orders_size"]),
+        ("Postgres", "17 · Neon"),
+    ],
+)
 
 # --------------------------------------------------------------------- KPIs
 st.header(f"Business health · {brand_label}")

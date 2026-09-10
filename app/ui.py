@@ -1,28 +1,32 @@
 """
-Shared chrome: design tokens, page config, sidebar filters, chart styling.
+Shared chrome: design tokens, app shell, sidebar filters, chart styling.
 
-THE COLOUR DECISION, because it is not obvious and it is easy to get wrong.
+THE COLOUR DECISION, because it is easy to get backwards.
 
-The brand accent is an acid lime. It is used everywhere in the interface -- active
-states, key figures, the sidebar rule, button hovers -- and it is used *nowhere* as
-a data mark. That split is deliberate and it is measured, not felt: lime sits at
-OKLCH lightness 0.916 against a 0.43-0.77 band for marks, and contrasts 1.21:1
-against a white surface where 3:1 is the floor. A lime bar on a white card is very
-close to invisible, and a reader with any contrast loss sees nothing at all.
+The brand accent is an acid lime. Where it is allowed to go is decided by
+contrast, not by taste:
 
-So the plot area gets a different palette from the interface:
+  * as a BACKGROUND with ink text on top -- hero panel, active nav, chips, badges
+    -- it measures roughly 16:1 against near-black. That is the most legible
+    pairing on the whole site, so this is where the brand gets to be loud.
+  * as a MARK on white -- a bar, a line, a dot -- it is 1.21:1 and sits at OKLCH
+    lightness 0.916 against a 0.43-0.77 band for marks. Effectively invisible,
+    and gone entirely for a reader with any contrast loss. So it never goes there.
 
-  * one series  -> ink. No identity work is needed when there is only one thing on
-                   screen, so the mark takes the same near-black as the type. This
-                   is what makes the charts look like the rest of the page.
-  * two or more -> SERIES slots below, assigned in fixed order, never cycled. These
-                   come from a validated palette and clear CVD separation, the
-                   normal-vision floor, chroma and the lightness band.
-  * magnitude   -> SEQUENTIAL, a single hue light-to-dark.
+Loud and legible are not in tension; they just require putting the accent behind
+the text rather than into the data.
 
-Slots 3 and 4 sit below 3:1 on white, which the palette permits only when the
-values are also readable another way. Every chart that reaches four series on this
-site has its own table underneath, so that relief holds.
+The plot area therefore runs its own palette:
+
+  * one series  -> ink, the same near-black as the type
+  * two or more -> SERIES below, fixed order, never cycled, from a validated
+                   palette clearing CVD separation, the normal-vision floor,
+                   chroma, and the lightness band
+  * magnitude   -> SEQUENTIAL, one hue light-to-dark
+
+Slots 3 and 4 fall below 3:1 on white, which the palette permits only where the
+values are legible another way. Every chart here that reaches four series has a
+table beneath it, so that relief holds.
 """
 
 import datetime as dt
@@ -31,134 +35,197 @@ import streamlit as st
 import db
 import queries as q
 
-# --------------------------------------------------------------------- interface tokens
-INK = "#101112"        # type, dark chrome, single-series marks
-INK_2 = "#3D3D3A"      # secondary type
-MUTED = "#87867F"      # tertiary type, axis labels
-LIME = "#DDF247"       # brand accent -- interface only, never a data mark
-LIME_DIM = "#C6DA2E"   # accent hover / pressed
-CANVAS = "#F4F4F1"     # page ground
-CARD = "#FFFFFF"       # surfaces
-LINE = "#E4E4DE"       # hairlines, borders
-GRID = "#EDEDE8"       # chart gridlines
+# --------------------------------------------------------------------- interface
+INK = "#0E0F10"
+INK_SOFT = "#191A1C"
+INK_2 = "#3A3A38"
+MUTED = "#84837C"
+LIME = "#DDF247"
+LIME_DEEP = "#C4DB1E"
+CANVAS = "#F2F2EE"
+CARD = "#FFFFFF"
+LINE = "#E3E3DC"
+GRID = "#EDEDE7"
 
-# --------------------------------------------------------------------- data tokens
-# Fixed order. A fifth series folds into "Other" rather than inventing a hue.
+# --------------------------------------------------------------------- data
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
-PALETTE = SERIES       # backwards-compatible alias
-SEQUENTIAL = [         # one hue, light -> dark, for magnitude
+PALETTE = SERIES
+SEQUENTIAL = [
     [0.00, "#e8f0fc"], [0.20, "#b7d3f6"], [0.40, "#6da7ec"],
     [0.65, "#2a78d6"], [0.85, "#1c5cab"], [1.00, "#0d366b"],
 ]
 
-FONT = ('-apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", '
-        "Arial, sans-serif")
+FONT = '-apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif'
+MONO = '"SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, monospace'
 
 CSS = f"""
 <style>
   :root {{
-    --ink: {INK}; --ink2: {INK_2}; --muted: {MUTED};
-    --lime: {LIME}; --canvas: {CANVAS}; --card: {CARD}; --line: {LINE};
+    --ink:{INK}; --ink-soft:{INK_SOFT}; --ink2:{INK_2}; --muted:{MUTED};
+    --lime:{LIME}; --lime-deep:{LIME_DEEP};
+    --canvas:{CANVAS}; --card:{CARD}; --line:{LINE};
   }}
 
   .stApp {{ background: var(--canvas); }}
-  .block-container {{ padding-top: 2.2rem; padding-bottom: 4rem; max-width: 1240px; }}
+  .block-container {{ padding-top: 1.6rem; padding-bottom: 5rem; max-width: 1280px; }}
+  html, body, [class*="css"] {{ font-family: {FONT}; -webkit-font-smoothing: antialiased; }}
 
-  html, body, [class*="css"] {{ font-family: {FONT}; }}
-
-  h1 {{ font-size: 2.1rem !important; font-weight: 640 !important;
-       letter-spacing: -.028em; color: var(--ink); margin-bottom: .1rem !important; }}
-  h2 {{ font-size: 1.18rem !important; font-weight: 620 !important;
-       letter-spacing: -.012em; color: var(--ink);
-       margin: 2.1rem 0 .5rem !important; }}
-  h3 {{ font-size: .98rem !important; font-weight: 600 !important; color: var(--ink); }}
-
-  /* Section headings get a short lime rule instead of a heavier type weight --
-     the accent does the separating so the type can stay quiet. */
-  h2::before {{
-    content: ""; display: block; width: 26px; height: 3px; border-radius: 2px;
-    background: var(--lime); margin-bottom: .55rem;
-  }}
-
-  .rm-sub {{ color: var(--muted); font-size: .93rem; line-height: 1.55;
-            max-width: 68ch; margin: .15rem 0 1.4rem; }}
-
-  /* Metrics as cards. The lime edge marks them as the page's primary readout
-     without tinting any of the numbers themselves. */
-  [data-testid="stMetric"] {{
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: 13px; padding: .85rem .95rem .8rem;
+  /* ---------------------------------------------------------------- hero */
+  .rm-hero {{
+    background: var(--lime); border-radius: 20px;
+    padding: 1.95rem 2.15rem 1.75rem; margin: .1rem 0 2rem;
     position: relative; overflow: hidden;
   }}
-  [data-testid="stMetric"]::before {{
-    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: var(--lime);
+  .rm-hero::after {{
+    content: ""; position: absolute; right: -80px; top: -80px;
+    width: 260px; height: 260px; border-radius: 50%; background: rgba(0,0,0,.05);
+  }}
+  .rm-hero h1 {{
+    font-size: 2.5rem !important; font-weight: 680 !important;
+    letter-spacing: -.036em; color: var(--ink) !important;
+    margin: 0 0 .5rem !important; line-height: 1.04; position: relative; z-index: 1;
+  }}
+  .rm-hero p {{
+    color: #2B2D20; font-size: .955rem; line-height: 1.62;
+    max-width: 64ch; margin: 0 0 1.2rem; position: relative; z-index: 1;
+  }}
+  .rm-chips {{ display: flex; flex-wrap: wrap; gap: .45rem; position: relative; z-index: 1; }}
+  .rm-chip {{
+    background: var(--ink); color: #EFEFE9; border-radius: 999px;
+    padding: .35rem .85rem; font-size: .765rem; font-weight: 530; white-space: nowrap;
+  }}
+  .rm-chip b {{ color: var(--lime); font-weight: 660; }}
+
+  /* ---------------------------------------------------------------- page head */
+  .rm-head {{ margin: .1rem 0 .2rem; }}
+  .rm-kicker {{
+    display: inline-block; background: var(--lime); color: var(--ink);
+    border-radius: 999px; padding: .22rem .72rem; font-size: .672rem;
+    font-weight: 680; letter-spacing: .105em; text-transform: uppercase;
+    margin-bottom: .75rem;
+  }}
+  .rm-head h1 {{
+    font-size: 2.2rem !important; font-weight: 670 !important;
+    letter-spacing: -.033em; color: var(--ink); margin: 0 0 .35rem !important;
+  }}
+  .rm-sub {{
+    color: var(--muted); font-size: .935rem; line-height: 1.62;
+    max-width: 70ch; margin: .15rem 0 1.6rem;
+  }}
+
+  /* ---------------------------------------------------------------- sections */
+  h2 {{
+    font-size: 1.23rem !important; font-weight: 650 !important;
+    letter-spacing: -.016em; color: var(--ink); margin: 2.7rem 0 .9rem !important;
+    display: flex; align-items: center; gap: .62rem;
+  }}
+  h2::before {{
+    content: ""; width: 9px; height: 9px; border-radius: 3px; flex: none;
+    background: var(--lime); box-shadow: 0 0 0 3.5px rgba(221,242,71,.3);
+  }}
+  h3 {{ font-size: 1rem !important; font-weight: 620 !important; color: var(--ink); }}
+
+  /* ---------------------------------------------------------------- metrics */
+  [data-testid="stMetric"] {{
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 15px; padding: .95rem 1.05rem .9rem;
+    transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease;
+  }}
+  [data-testid="stMetric"]:hover {{
+    box-shadow: 0 8px 22px -12px rgba(14,15,16,.28);
+    border-color: #D3D3C9; transform: translateY(-1px);
   }}
   [data-testid="stMetricValue"] {{
-    font-size: 1.42rem !important; font-weight: 620 !important;
-    color: var(--ink) !important; letter-spacing: -.02em;
+    font-size: 1.36rem !important; font-weight: 660 !important;
+    color: var(--ink) !important; letter-spacing: -.028em;
+    white-space: nowrap;
   }}
-  [data-testid="stMetricLabel"] {{
-    font-size: .7rem !important; font-weight: 560 !important;
-    letter-spacing: .07em; text-transform: uppercase; color: var(--muted) !important;
+  [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p {{
+    font-size: .668rem !important; font-weight: 620 !important;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted) !important;
   }}
-  [data-testid="stMetricDelta"] {{ font-size: .76rem !important; color: var(--muted) !important; }}
+  [data-testid="stMetricDelta"] {{ font-size: .755rem !important; color: var(--muted) !important; }}
 
-  /* The reading under a chart. Every number on this site is supposed to come
-     with one, so it needs to look deliberate rather than like a callout box. */
+  /* ---------------------------------------------------------------- reading */
   .rm-note {{
     background: var(--card); border: 1px solid var(--line);
-    border-left: 3px solid var(--lime); border-radius: 0 11px 11px 0;
-    padding: .85rem 1.05rem; margin: .9rem 0 1.5rem;
-    font-size: .92rem; line-height: 1.62; color: var(--ink2);
+    border-left: 4px solid var(--lime); border-radius: 4px 14px 14px 4px;
+    padding: 1rem 1.2rem; margin: 1rem 0 1.7rem;
+    font-size: .925rem; line-height: 1.68; color: var(--ink2);
   }}
-  .rm-note b {{ color: var(--ink); font-weight: 615; }}
+  .rm-note b {{ color: var(--ink); font-weight: 640; }}
 
-  [data-testid="stExpander"] {{
-    border: 1px solid var(--line); border-radius: 11px;
-    background: var(--card); overflow: hidden;
-  }}
-  [data-testid="stExpander"] summary {{ font-size: .87rem; color: var(--ink2); }}
-  [data-testid="stExpander"] summary:hover {{ color: var(--ink); }}
-
-  [data-testid="stDataFrame"] {{ border: 1px solid var(--line); border-radius: 11px; }}
-
+  /* ---------------------------------------------------------------- surfaces */
   [data-testid="stPlotlyChart"] {{
     background: var(--card); border: 1px solid var(--line);
-    border-radius: 13px; padding: .9rem 1rem .5rem;
+    border-radius: 15px; padding: 1rem 1.1rem .7rem;
   }}
+  [data-testid="stDataFrame"] {{ border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }}
+  [data-testid="stExpander"] {{
+    border: 1px solid var(--line); border-radius: 13px; background: var(--card); overflow: hidden;
+  }}
+  [data-testid="stExpander"] summary {{ font-size: .875rem; color: var(--ink2); font-weight: 520; }}
+  [data-testid="stExpander"] summary:hover {{ color: var(--ink); }}
 
   .stButton > button {{
-    border-radius: 9px; border: 1px solid var(--line); background: var(--card);
-    color: var(--ink); font-weight: 560; font-size: .86rem; padding: .34rem .95rem;
-    transition: background .12s ease, border-color .12s ease;
+    border-radius: 10px; border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); font-weight: 570; font-size: .865rem; padding: .38rem 1rem;
+    transition: all .14s ease;
   }}
-  .stButton > button:hover {{ background: var(--lime); border-color: var(--lime); color: var(--ink); }}
+  .stButton > button:hover {{
+    background: var(--lime); border-color: var(--lime-deep);
+    color: var(--ink); transform: translateY(-1px);
+  }}
   .stButton > button[kind="primary"] {{ background: var(--ink); border-color: var(--ink); color: #fff; }}
-  .stButton > button[kind="primary"]:hover {{ background: var(--lime); border-color: var(--lime); color: var(--ink); }}
+  .stButton > button[kind="primary"]:hover {{ background: var(--lime); border-color: var(--lime-deep); color: var(--ink); }}
 
   hr, [data-testid="stDivider"] {{ border-color: var(--line) !important; }}
+  code {{ font-family: {MONO}; font-size: .83rem; background: #EFEFE9;
+          padding: .1rem .34rem; border-radius: 5px; color: #2B2C2A; }}
+  [data-testid="stCode"] {{ border-radius: 12px; }}
 
-  /* Dark sidebar against the pale canvas, the way the reference puts a dark
-     toolbar under light cards. */
+  /* ---------------------------------------------------------------- sidebar */
   [data-testid="stSidebar"] {{ background: {INK}; border-right: none; }}
-  [data-testid="stSidebar"] * {{ color: #EDEDE9; }}
+  [data-testid="stSidebar"] * {{ color: #E9E9E4; }}
+  [data-testid="stSidebar"] .block-container {{ padding-top: 1.1rem; }}
+
+  [data-testid="stSidebarNav"]::before {{
+    content: "RETAILMIND";
+    display: block; color: #fff; font-size: .95rem; font-weight: 680;
+    letter-spacing: .01em; padding: .1rem .6rem .1rem 2.55rem; margin-bottom: .9rem;
+    background-image: linear-gradient(var(--lime), var(--lime));
+    background-repeat: no-repeat; background-size: 30px 30px;
+    background-position: left center; line-height: 30px;
+  }}
+
   [data-testid="stSidebar"] h3 {{
-    color: #fff !important; font-size: .72rem !important; letter-spacing: .09em;
-    text-transform: uppercase; font-weight: 600 !important;
+    color: #6E6E66 !important; font-size: .645rem !important; letter-spacing: .135em;
+    text-transform: uppercase; font-weight: 640 !important; margin-bottom: .3rem !important;
   }}
   [data-testid="stSidebar"] h3::before {{ display: none; }}
-  [data-testid="stSidebar"] [data-testid="stCaptionContainer"],
-  [data-testid="stSidebar"] .stCaption {{ color: #8E8E88 !important; }}
-  [data-testid="stSidebar"] [data-baseweb="select"] > div {{
-    background: #1E1F21; border-color: #2C2D30; border-radius: 9px;
+  [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {{
+    color: #74746D !important; font-size: .755rem;
   }}
-  [data-testid="stSidebarNav"] a {{ border-radius: 8px; }}
-  [data-testid="stSidebarNav"] a[aria-current="page"] {{ background: #1E1F21; }}
-  [data-testid="stSidebarNav"] a[aria-current="page"] span {{ color: {LIME} !important; font-weight: 600; }}
+  [data-testid="stSidebar"] label p {{ color: #A2A29A !important; font-size: .78rem !important; font-weight: 520; }}
+  [data-testid="stSidebar"] [data-baseweb="select"] > div {{
+    background: {INK_SOFT}; border-color: #2A2B2D; border-radius: 10px; color: #E9E9E4;
+  }}
+  [data-testid="stSidebar"] [data-baseweb="select"] svg {{ fill: #85857D; }}
+  [data-testid="stSidebar"] hr {{ border-color: #232426 !important; }}
 
-  code {{ font-size: .84rem; background: #F1F1EC; padding: .08rem .3rem; border-radius: 4px; }}
-  [data-testid="stCode"] {{ border-radius: 10px; }}
+  /* Active nav is a lime plate with ink text -- the loudest element in the shell
+     and, at ~16:1, the most legible one. */
+  [data-testid="stSidebarNav"] a {{ border-radius: 10px; margin-bottom: .12rem; }}
+  [data-testid="stSidebarNav"] a span {{ font-size: .875rem; font-weight: 530; color: #B7B7AF; }}
+  [data-testid="stSidebarNav"] a:hover {{ background: {INK_SOFT}; }}
+  [data-testid="stSidebarNav"] a:hover span {{ color: #fff; }}
+  [data-testid="stSidebarNav"] a[aria-current="page"],
+  [data-testid="stSidebarNav"] li a[aria-current] {{ background: var(--lime) !important; }}
+  [data-testid="stSidebarNav"] a[aria-current="page"],
+  [data-testid="stSidebarNav"] a[aria-current="page"] *,
+  [data-testid="stSidebarNav"] li a[aria-current] * {{
+    color: {INK} !important; fill: {INK} !important; font-weight: 650 !important;
+  }}
 </style>
 """
 
@@ -168,6 +235,27 @@ def boot():
     st.set_page_config(page_title="RetailMind", page_icon="◆",
                        layout="wide", initial_sidebar_state="expanded")
     st.markdown(CSS, unsafe_allow_html=True)
+
+
+def hero(title: str, blurb: str, chips=None):
+    """The lime panel. One per page, at the top, and nowhere else."""
+    chip_html = "".join(
+        f'<div class="rm-chip">{label} <b>{value}</b></div>' for label, value in (chips or [])
+    )
+    st.markdown(
+        f'<div class="rm-hero"><h1>{title}</h1><p>{blurb}</p>'
+        f'<div class="rm-chips">{chip_html}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def head(kicker: str, title: str, blurb: str):
+    """Page header for the views that do not carry the hero."""
+    st.markdown(
+        f'<div class="rm-head"><span class="rm-kicker">{kicker}</span><h1>{title}</h1></div>',
+        unsafe_allow_html=True,
+    )
+    sub(blurb)
 
 
 def note(text: str):
@@ -187,7 +275,7 @@ def chart(fig, height: int = 360, legend: bool = True, ygrid: bool = True,
 
     Recessive axes and grid, type in ink tokens rather than series colours, a
     unified hover so a reader gets every series at once instead of hunting for
-    one mark, and no chart border -- the card around it already draws the edge.
+    one mark, and a white surface matching every other block on the page.
     """
     fig.update_layout(
         height=height,
@@ -195,13 +283,13 @@ def chart(fig, height: int = 360, legend: bool = True, ygrid: bool = True,
         paper_bgcolor=CARD,
         plot_bgcolor=CARD,
         font=dict(family=FONT, size=12, color=INK_2),
-        hoverlabel=dict(bgcolor=CARD, bordercolor=LINE, font_size=12,
-                        font_family=FONT, font_color=INK),
+        hoverlabel=dict(bgcolor=INK, bordercolor=INK, font_size=12,
+                        font_family=FONT, font_color="#F1F1EB"),
         hovermode="x unified",
         showlegend=legend,
-        legend=dict(orientation="h", y=1.14, x=0, xanchor="left",
+        legend=dict(orientation="h", y=1.16, x=0, xanchor="left",
                     bgcolor="rgba(0,0,0,0)", font=dict(size=11.5, color=INK_2)),
-        bargap=.28, bargroupgap=.08,
+        bargap=.3, bargroupgap=.09,
     )
     fig.update_xaxes(showgrid=xgrid, gridcolor=GRID, zeroline=False, automargin=True,
                      linecolor=LINE, tickfont=dict(size=11, color=MUTED),
@@ -249,5 +337,5 @@ def filters(show_dates: bool = True):
             if isinstance(picked, tuple) and len(picked) == 2:
                 start, end = picked
 
-    st.sidebar.caption(f"Warehouse covers {lo} → {hi}")
+    st.sidebar.caption(f"Covers {lo} → {hi}")
     return {"brand": brand, "start": start, "end": end}, pick

@@ -10,8 +10,7 @@ import ui
 
 params, brand_label = ui.filters(show_dates=False)
 
-st.title("Cohort retention")
-ui.sub(
+ui.head("Cohort analysis", "Cohort retention", 
     "Customers grouped by the month of their first order, then tracked forward. "
     "Row = acquisition month, column = months since. Every cell is the share of "
     "that cohort who ordered again in that month."

@@ -19,8 +19,7 @@ import plandoc
 import ui
 
 
-st.title("Plan Doctor")
-ui.sub(
+ui.head("Diagnostics", "Plan Doctor", 
     "Paste a SELECT against the warehouse. It runs EXPLAIN ANALYZE and tells you "
     "what the planner did, and where the time went."
 )

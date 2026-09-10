@@ -9,8 +9,7 @@ import ui
 
 params, brand_label = ui.filters(show_dates=False)
 
-st.title("Customer segments")
-ui.sub(
+ui.head("RFM segmentation", "Customer segments", 
     "Recency, frequency and monetary value, each scored into quintiles across the "
     "customer base, then combined into segments. Scoring by quintile rather than "
     "by fixed thresholds means the split still works when it is pointed at one "

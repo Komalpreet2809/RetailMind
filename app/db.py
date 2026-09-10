@@ -145,9 +145,11 @@ def fmt_inr(x) -> str:
     except (TypeError, ValueError):
         return "-"
     if abs(x) >= 1e7:
-        return f"₹{x / 1e7:,.2f} Cr"
+        v = x / 1e7
+        return f"₹{v:,.0f} Cr" if abs(v) >= 100 else f"₹{v:,.1f} Cr"
     if abs(x) >= 1e5:
-        return f"₹{x / 1e5:,.2f} L"
+        v = x / 1e5
+        return f"₹{v:,.0f} L" if abs(v) >= 100 else f"₹{v:,.1f} L"
     if abs(x) >= 1e3:
         return f"₹{x / 1e3:,.1f} K"
     return f"₹{x:,.0f}"

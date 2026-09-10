@@ -55,8 +55,7 @@ full_by_id = {r["id"]: r for r in (full or {}).get("results", [])}
 # Only treat the second set as a different scale if it genuinely is one.
 comparable = full and full.get("order_count", 0) > hosted["order_count"] * 1.5
 
-st.title("Query Lab")
-ui.sub(
+ui.head("Query performance", "Query Lab", 
     "Five queries that ran fine while I was building against a few thousand rows "
     "and fell over further up. Each shows the plan Postgres chose before the fix, "
     "the diagnosis, and the plan after."
