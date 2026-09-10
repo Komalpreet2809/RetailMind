@@ -8,7 +8,6 @@ import db
 import queries as q
 import ui
 
-ui.page("Retention", "🔁")
 params, brand_label = ui.filters(show_dates=False)
 
 st.title("Cohort retention")
@@ -31,7 +30,7 @@ pct = pivot.div(base, axis=0) * 100
 # next to three-year-old cohorts invites a false read.
 pct = pct.iloc[:-2] if len(pct) > 4 else pct
 
-st.subheader(f"Retention by acquisition cohort · {brand_label}")
+st.header(f"Retention by acquisition cohort · {brand_label}")
 
 z = pct.values
 text = np.where(np.isnan(z), "", np.round(z, 0).astype("O")).astype(str)
@@ -43,14 +42,14 @@ fig = go.Figure(go.Heatmap(
     x=[f"M{c}" for c in pct.columns],
     y=[d.strftime("%b %Y") for d in pct.index],
     text=text, texttemplate="%{text}",
-    colorscale=[[0, "#f8fafc"], [.25, "#bfdbfe"], [.6, "#3b82f6"], [1, "#1e3a8a"]],
+    colorscale=ui.SEQUENTIAL,
     zmin=0, zmax=float(np.nanmax(z[:, 1:])) if z.shape[1] > 1 else 100,
     hovertemplate="%{y} · %{x}<br>%{z:.1f}% retained<extra></extra>",
-    colorbar=dict(title="%"),
+    colorbar=dict(title="%", thickness=11, outlinewidth=0,
+                  tickfont=dict(size=10, color=ui.MUTED)),
 ))
-fig.update_layout(height=max(420, 26 * len(pct)), margin=dict(l=0, r=0, t=10, b=0),
-                  xaxis=dict(side="top"), yaxis=dict(autorange="reversed"))
-st.plotly_chart(fig, width='stretch')
+fig.update_layout(xaxis=dict(side="top"), yaxis=dict(autorange="reversed"))
+ui.chart(fig, height=max(430, 27 * len(pct)), legend=False, ygrid=False)
 
 # --------------------------------------------------------------------- reading
 if pct.shape[1] > 3:
@@ -80,8 +79,8 @@ if pct.shape[1] > 3:
 
 db.sql_panel(q.COHORTS, raw, {"brand": params["brand"]}, "SQL · cohort retention")
 
-st.subheader("Cohort sizes")
+st.header("Cohort sizes")
 st.caption("Retention percentages are meaningless without the denominator.")
 sizes = base.to_frame("customers")
 sizes.index = [d.strftime("%b %Y") for d in sizes.index]
-st.bar_chart(sizes, height=220, color=ui.PALETTE[0])
+st.bar_chart(sizes, height=220, color=ui.INK)

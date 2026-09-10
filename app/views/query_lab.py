@@ -30,7 +30,6 @@ import streamlit as st
 import db
 import ui
 
-ui.page("Query Lab", "⚡")
 
 DATA = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 
@@ -82,21 +81,22 @@ else:
     )
 
 # --------------------------------------------------------------------- summary
-st.subheader("The five")
+st.header("The five")
 
 fig = go.Figure()
 labels = [r["title"] for r in res]
-fig.add_bar(y=labels, x=[r["slow_ms"] for r in res], name="Before",
-            orientation="h", marker_color=ui.PALETTE[3], opacity=.85)
-fig.add_bar(y=labels, x=[r["fast_ms"] for r in res], name="After",
-            orientation="h", marker_color=ui.PALETTE[1], opacity=.9)
+fig.add_bar(y=labels, x=[r["slow_ms"] for r in res], name="Before the fix",
+            orientation="h", marker_color=ui.SERIES[1], marker_line_width=0,
+            hovertemplate="before: %{x:,.0f} ms<extra></extra>")
+fig.add_bar(y=labels, x=[r["fast_ms"] for r in res], name="After the fix",
+            orientation="h", marker_color=ui.SERIES[0], marker_line_width=0,
+            hovertemplate="after: %{x:,.0f} ms<extra></extra>")
 fig.update_layout(
-    height=330, margin=dict(l=0, r=0, t=8, b=0), barmode="group",
+    barmode="group",
     xaxis=dict(title="milliseconds (log scale)", type="log"),
-    legend=dict(orientation="h", y=1.15, x=0),
     yaxis=dict(autorange="reversed"),
 )
-st.plotly_chart(fig, width="stretch")
+ui.chart(fig, height=340, xgrid=True, ygrid=False)
 
 if comparable:
     st.markdown("**The same five, on two different machines**")
@@ -137,7 +137,7 @@ if scaling and len(scaling.get("points", [])) > 2:
     sizes = [p["orders"] for p in pts]
     grew = sizes[-1] / sizes[0]
 
-    st.subheader("What actually happens as the table grows")
+    st.header("What actually happens as the table grows")
     ui.sub(
         "One machine, one build, four warehouse sizes. Unlike the two columns "
         "above, only one thing changes here — the number of rows — so the shape of "
@@ -146,7 +146,7 @@ if scaling and len(scaling.get("points", [])) > 2:
 
     fig = go.Figure()
     for i, (qid, lab) in enumerate(scaling["labels"].items()):
-        c = ui.PALETTE[i % len(ui.PALETTE)]
+        c = ui.SERIES[i % len(ui.SERIES)]
         ys = [p["results"][qid]["slow_ms"] for p in pts if qid in p["results"]]
         yf = [p["results"][qid]["fast_ms"] for p in pts if qid in p["results"]]
         fig.add_scatter(x=sizes, y=ys, name=lab["title"], mode="lines+markers",
@@ -155,12 +155,10 @@ if scaling and len(scaling.get("points", [])) > 2:
                         line=dict(color=c, width=1.5, dash="dot"), showlegend=False,
                         hovertemplate="fixed: %{y:.0f} ms<extra></extra>")
     fig.update_layout(
-        height=430, margin=dict(l=0, r=0, t=10, b=0),
         xaxis=dict(title="orders in the warehouse", type="log"),
         yaxis=dict(title="execution time (ms, log scale)", type="log"),
-        legend=dict(orientation="h", y=-.22, x=0), hovermode="x unified",
     )
-    st.plotly_chart(fig, width="stretch")
+    ui.chart(fig, height=440, xgrid=True)
     st.caption("Solid = before the fix. Dotted = the same query after it.")
 
     rows = []
@@ -269,7 +267,7 @@ for i, r in enumerate(res, 1):
     st.divider()
 
 # --------------------------------------------------------------------- rollups
-st.subheader("The one an index could not fix")
+st.header("The one an index could not fix")
 st.markdown(
     "Every fix above is an index or a rewrite. The dashboard's own queries were a "
     "different problem: revenue by month, revenue by brand and the cohort grid each "

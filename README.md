@@ -93,8 +93,8 @@ tracks the rows returned rather than the rows stored.
 Synthetic, but not random. Uniform-random orders give flat cohort curves and a meaningless
 RFM split, so customers here carry latent traits and their orders fall out of those:
 
-- **Heavy-tailed value** — the top 20% of customers drive 80.6% of revenue
-- **A long single-visit tail** — 21.9% of customers bought exactly once
+- **Heavy-tailed value** — the top 20% of customers drive 83.1% of revenue
+- **A long single-visit tail** — 9.9% of customers bought exactly once
 - **Per-customer lapse** — retention decays instead of flatlining
 - **Festive seasonality** — Diwali and end-of-season sale peaks
 - **Campaigns with real holdouts** — treated customers genuinely receive incremental

@@ -18,7 +18,6 @@ import db
 import plandoc
 import ui
 
-ui.page("Plan Doctor", "🩺")
 
 st.title("Plan Doctor")
 ui.sub(
@@ -102,7 +101,7 @@ if go:
     if summary["scan_types"]:
         st.caption("Scan types used: " + ", ".join(f"`{s}`" for s in summary["scan_types"]))
 
-    st.subheader("Diagnosis")
+    st.header("Diagnosis")
     if not findings:
         st.success(
             "Nothing flagged. No scan is discarding most of what it reads, the "
@@ -120,7 +119,7 @@ if go:
                 if f.node:
                     st.caption(f"at: `{f.node}`")
 
-    st.subheader("Plan tree")
+    st.header("Plan tree")
     st.code("\n".join(plandoc.render_tree(plan[0]["Plan"])), language="text")
 
     with st.expander("Raw plan JSON"):

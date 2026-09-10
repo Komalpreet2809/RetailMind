@@ -20,16 +20,33 @@ Two decisions worth knowing about before reading these:
 """
 
 # --------------------------------------------------------------------- exec overview
+# Sums and counts roll up; DISTINCT counts do not. mv_monthly is grouped by
+# (month, brand, channel), so adding its customer counts together counts anyone
+# who bought in two months twice -- across the full window that inflated 100,403
+# customers to 1,093,257. Revenue and order counts are additive and still come
+# from the rollup; the distinct customer count has to touch the fact table, and
+# costs about 1.4s for it. That is the honest price of the measure, and it is why
+# it is cached rather than pre-aggregated.
 KPIS = """
+WITH agg AS (
+    SELECT sum(orders) AS orders, sum(revenue) AS revenue
+    FROM mv_monthly
+    WHERE month BETWEEN date_trunc('month', %(start)s::date) AND %(end)s::date
+      AND (%(brand)s::smallint IS NULL OR brand_id = %(brand)s::smallint)
+),
+people AS (
+    SELECT count(DISTINCT customer_id) AS active_customers
+    FROM orders
+    WHERE order_date BETWEEN %(start)s::date AND %(end)s::date
+      AND (%(brand)s::smallint IS NULL OR brand_id = %(brand)s::smallint)
+)
 SELECT
-    sum(orders)                                 AS orders,
-    sum(revenue)                                AS revenue,
-    sum(customers)                              AS active_customers,
-    sum(revenue) / nullif(sum(orders), 0)       AS aov,
-    sum(revenue) / nullif(sum(customers), 0)    AS revenue_per_customer
-FROM mv_monthly
-WHERE month BETWEEN date_trunc('month', %(start)s::date) AND %(end)s::date
-  AND (%(brand)s::smallint IS NULL OR brand_id = %(brand)s::smallint)
+    agg.orders,
+    agg.revenue,
+    people.active_customers,
+    agg.revenue / nullif(agg.orders, 0)                 AS aov,
+    agg.revenue / nullif(people.active_customers, 0)    AS revenue_per_customer
+FROM agg, people
 """
 
 # Lifetime measure, deliberately not date-filtered: whether someone ever came
@@ -49,7 +66,6 @@ SELECT
     month,
     sum(orders)                             AS orders,
     sum(revenue)                            AS revenue,
-    sum(customers)                          AS customers,
     sum(revenue) / nullif(sum(orders), 0)   AS aov
 FROM mv_monthly
 WHERE month BETWEEN date_trunc('month', %(start)s::date) AND %(end)s::date
@@ -58,19 +74,32 @@ GROUP BY month
 ORDER BY month
 """
 
+# Same split as KPIS: additive measures from the rollup, the distinct customer
+# count from the fact table, joined on brand.
 REVENUE_BY_BRAND = """
+WITH agg AS (
+    SELECT brand_id, sum(orders) AS orders, sum(revenue) AS revenue
+    FROM mv_monthly
+    WHERE month BETWEEN date_trunc('month', %(start)s::date) AND %(end)s::date
+    GROUP BY brand_id
+),
+people AS (
+    SELECT brand_id, count(DISTINCT customer_id) AS customers
+    FROM orders
+    WHERE order_date BETWEEN %(start)s::date AND %(end)s::date
+    GROUP BY brand_id
+)
 SELECT
     b.brand_name,
     b.category,
-    sum(m.orders)                                   AS orders,
-    sum(m.revenue)                                  AS revenue,
-    sum(m.customers)                                AS customers,
-    sum(m.revenue) / nullif(sum(m.orders), 0)       AS aov
-FROM mv_monthly m
-JOIN brands b ON b.brand_id = m.brand_id
-WHERE m.month BETWEEN date_trunc('month', %(start)s::date) AND %(end)s::date
-GROUP BY b.brand_name, b.category
-ORDER BY revenue DESC
+    agg.orders,
+    agg.revenue,
+    people.customers,
+    agg.revenue / nullif(agg.orders, 0) AS aov
+FROM agg
+JOIN brands b  ON b.brand_id = agg.brand_id
+LEFT JOIN people ON people.brand_id = agg.brand_id
+ORDER BY agg.revenue DESC
 """
 
 CHANNEL_MIX = """

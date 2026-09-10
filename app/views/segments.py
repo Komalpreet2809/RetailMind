@@ -7,7 +7,6 @@ import db
 import queries as q
 import ui
 
-ui.page("Segments", "👥")
 params, brand_label = ui.filters(show_dates=False)
 
 st.title("Customer segments")
@@ -31,16 +30,17 @@ rfm["_o"] = rfm["segment"].map({s: i for i, s in enumerate(ORDER)}).fillna(9)
 rfm = rfm.sort_values("_o")
 
 # --------------------------------------------------------------------- share chart
-st.subheader(f"Share of customers vs share of revenue · {brand_label}")
+st.header(f"Share of customers vs share of revenue · {brand_label}")
 
 fig = go.Figure()
 fig.add_bar(x=rfm["segment"], y=rfm["customer_share"], name="% of customers",
-            marker_color=ui.PALETTE[0], opacity=.85)
+            marker_color=ui.SERIES[0], marker_line_width=0,
+            hovertemplate="%{y:.1f}% of customers<extra></extra>")
 fig.add_bar(x=rfm["segment"], y=rfm["revenue_share"], name="% of revenue",
-            marker_color=ui.PALETTE[1], opacity=.9)
-fig.update_layout(height=380, margin=dict(l=0, r=0, t=10, b=0), barmode="group",
-                  yaxis=dict(title="%"), legend=dict(orientation="h", y=1.12, x=0))
-st.plotly_chart(fig, width='stretch')
+            marker_color=ui.SERIES[1], marker_line_width=0,
+            hovertemplate="%{y:.1f}% of revenue<extra></extra>")
+fig.update_layout(barmode="group", yaxis_title="% of total")
+ui.chart(fig, height=380)
 
 champ = rfm[rfm["segment"] == "Champions"]
 risk = rfm[rfm["segment"] == "At Risk"]
@@ -57,7 +57,7 @@ if not champ.empty and not risk.empty:
     )
 
 # --------------------------------------------------------------------- table
-st.subheader("Segment detail")
+st.header("Segment detail")
 
 show = rfm[["segment", "customers", "customer_share", "avg_orders",
             "avg_recency_days", "avg_spend", "total_revenue", "revenue_share"]].copy()
@@ -80,7 +80,7 @@ st.dataframe(
 db.sql_panel(q.RFM, rfm, {"brand": params["brand"]}, "SQL · RFM segmentation")
 
 # --------------------------------------------------------------------- reading
-st.subheader("What to do with this")
+st.header("What to do with this")
 a, b, c = st.columns(3)
 a.markdown(
     "**Champions** — do not discount to them. They already buy at full price; a "

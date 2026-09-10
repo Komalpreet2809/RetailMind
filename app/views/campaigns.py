@@ -14,7 +14,6 @@ import db
 import queries as q
 import ui
 
-ui.page("Campaigns", "📣")
 params, brand_label = ui.filters(show_dates=False)
 
 st.title("Campaign performance")
@@ -35,7 +34,7 @@ perf["incremental_revenue"] = perf["incr_rev_per_cust"] * perf["treated"]
 perf["roi"] = (perf["incremental_revenue"] - perf["cost"]) / perf["cost"]
 
 # --------------------------------------------------------------------- by type
-st.subheader("Response rate vs incremental lift, by campaign type")
+st.header("Response rate vs incremental lift, by campaign type")
 
 bytype = perf.groupby("campaign_type").agg(
     campaigns=("campaign_id", "count"),
@@ -50,15 +49,17 @@ bytype["roi"] = (bytype["incremental"] - bytype["cost"]) / bytype["cost"]
 bytype = bytype.sort_values("lift_pp", ascending=False)
 
 fig = go.Figure()
-fig.add_bar(x=bytype["campaign_type"], y=bytype["open_rate"], name="Open rate %",
-            marker_color=ui.PALETTE[4], opacity=.75)
-fig.add_bar(x=bytype["campaign_type"], y=bytype["treated_conv"], name="Treated conversion %",
-            marker_color=ui.PALETTE[0], opacity=.9)
-fig.add_bar(x=bytype["campaign_type"], y=bytype["holdout_conv"], name="Holdout conversion %",
-            marker_color=ui.PALETTE[3], opacity=.9)
-fig.update_layout(height=380, margin=dict(l=0, r=0, t=10, b=0), barmode="group",
-                  yaxis=dict(title="%"), legend=dict(orientation="h", y=1.12, x=0))
-st.plotly_chart(fig, width='stretch')
+fig.add_bar(x=bytype["campaign_type"], y=bytype["open_rate"], name="Opened",
+            marker_color=ui.SERIES[0], marker_line_width=0,
+            hovertemplate="opened %{y:.1f}%<extra></extra>")
+fig.add_bar(x=bytype["campaign_type"], y=bytype["treated_conv"], name="Converted (treated)",
+            marker_color=ui.SERIES[1], marker_line_width=0,
+            hovertemplate="treated %{y:.1f}%<extra></extra>")
+fig.add_bar(x=bytype["campaign_type"], y=bytype["holdout_conv"], name="Converted (holdout)",
+            marker_color=ui.SERIES[2], marker_line_width=0,
+            hovertemplate="holdout %{y:.1f}%<extra></extra>")
+fig.update_layout(barmode="group", yaxis_title="% of audience")
+ui.chart(fig, height=380)
 
 dud = bytype.loc[bytype["lift_pp"].idxmin()]
 hero = bytype.loc[bytype["lift_pp"].idxmax()]
@@ -73,14 +74,14 @@ ui.note(
 )
 
 # --------------------------------------------------------------------- roi
-st.subheader("Return on spend, by type")
+st.header("Return on spend, by type")
 c = st.columns(len(bytype))
 for col, (_, r) in zip(c, bytype.iterrows()):
     col.metric(r["campaign_type"], f"{r['roi']:.1f}×",
                f"{db.fmt_inr(r['incremental'])} incremental", delta_color="off")
 
 # --------------------------------------------------------------------- detail
-st.subheader("Every campaign")
+st.header("Every campaign")
 
 show = perf.sort_values("incremental_revenue", ascending=False)[[
     "campaign_name", "campaign_type", "channel", "treated", "holdout",
@@ -108,7 +109,7 @@ st.dataframe(
 
 db.sql_panel(q.CAMPAIGN_PERFORMANCE, perf, {"brand": params["brand"]}, "SQL · campaign performance with holdout")
 
-st.subheader("The recommendation")
+st.header("The recommendation")
 st.markdown(
     f"Stop running **{dud['campaign_type']}** in its current form. It is not "
     f"underperforming — it is not doing anything, and the "
