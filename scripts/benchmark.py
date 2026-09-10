@@ -211,15 +211,29 @@ def explain(cur, sql):
     return "\n".join(r[0] for r in cur.fetchall())
 
 
+def _server_ms(cur, sql):
+    """
+    Execution time as the server reports it, not as the client experiences it.
+
+    Wall-clock timing from the client includes the network round trip, which is
+    a millisecond against a local container and ~200ms against a managed database
+    on another continent. Measured that way every query on the hosted database
+    would land between 200 and 250ms and the entire before/after contrast would
+    disappear into the latency. EXPLAIN ANALYZE reports what the query actually
+    cost inside Postgres, which is the thing being compared, and it makes the
+    local and hosted runs directly comparable.
+
+    The instrumentation is not free -- it inflates row-heavy plans somewhat --
+    but it inflates both sides of every comparison equally.
+    """
+    cur.execute("EXPLAIN (ANALYZE, FORMAT JSON) " + sql)
+    plan = cur.fetchone()[0]
+    return float(plan[0]["Execution Time"])
+
+
 def timed(cur, sql, repeats=REPEATS):
-    cur.execute(sql)              # warm-up, not timed
-    cur.fetchall()
-    times = []
-    for _ in range(repeats):
-        t = time.perf_counter()
-        cur.execute(sql)
-        cur.fetchall()
-        times.append((time.perf_counter() - t) * 1000.0)
+    _server_ms(cur, sql)          # warm-up, not recorded
+    times = [_server_ms(cur, sql) for _ in range(repeats)]
     return statistics.median(times), min(times)
 
 
@@ -272,12 +286,28 @@ def main():
     n = cur.fetchone()[0]
     print(f"\nQuery Lab :: {n:,} orders\n" + "-" * 46)
 
-    results = [run_pair(cur, p) for p in PAIRS]
+    # The hosted database omits the partitioned copy of the fact table -- it
+    # would double storage on a 0.5 GB tier for a single demonstration. Skip any
+    # pair whose tables are not present rather than failing the whole run, and
+    # record what was skipped so the page can say so instead of showing a gap.
+    def available(p):
+        for tbl in ("orders_part",):
+            if tbl in p["slow"] + p["fast"]:
+                cur.execute("SELECT to_regclass(%s) IS NOT NULL", (tbl,))
+                if not cur.fetchone()[0]:
+                    print(f"\n  {p['id']}: skipped, {tbl} not present here")
+                    return False
+        return True
+
+    runnable = [p for p in PAIRS if available(p)]
+    skipped = [p["id"] for p in PAIRS if p not in runnable]
+    results = [run_pair(cur, p) for p in runnable]
 
     payload = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "order_count": n,
         "repeats": REPEATS,
+        "skipped": skipped,
         "results": results,
     }
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

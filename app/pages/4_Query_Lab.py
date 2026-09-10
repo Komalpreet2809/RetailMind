@@ -1,9 +1,25 @@
 """
 Query Lab :: the five queries that were too slow, and what fixed them.
 
-Nothing here is illustrative. Each pair was run against the real 9.4M-row
-warehouse with the fix genuinely absent, then genuinely present, and the plans
-below are what Postgres actually chose in each state.
+Nothing here is illustrative. Each pair was run with the fix genuinely absent,
+then genuinely present, and the plans shown are what Postgres actually chose in
+each state.
+
+Two sets of numbers, deliberately:
+
+  * the hosted database, which is what the Run buttons below actually talk to
+  * a local build with roughly three times the rows
+
+They are shown side by side because publishing only the flattering one would be
+dishonest, but they are NOT a scaling curve and the page says so. The hosted
+database has fewer rows and is still slower in absolute terms: free-tier compute
+on network-attached storage behaves nothing like a local NVMe disk. Two variables
+move between those columns, so neither can be credited with the difference.
+
+What does survive the change of machine is the part worth having: the same query
+shapes are slow in both places, the same fixes work in both places, and the
+ratios hold. scripts/scaling.py is the honest scaling experiment -- one machine,
+four row counts.
 """
 
 import json
@@ -16,32 +32,54 @@ import ui
 
 ui.page("Query Lab", "⚡")
 
-BENCH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "benchmarks.json")
+DATA = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load():
-    with open(BENCH) as f:
+def load(name):
+    path = os.path.join(DATA, name)
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
         return json.load(f)
 
 
-data = load()
-res = data["results"]
+hosted = load("benchmarks.json")
+full = load("benchmarks_local.json")
+
+if hosted is None:
+    st.error("No benchmark results found. Run `python scripts/benchmark.py`.")
+    st.stop()
+
+res = hosted["results"]
+full_by_id = {r["id"]: r for r in (full or {}).get("results", [])}
+# Only treat the second set as a different scale if it genuinely is one.
+comparable = full and full.get("order_count", 0) > hosted["order_count"] * 1.5
 
 st.title("Query Lab")
 ui.sub(
     "Five queries that ran fine while I was building against a few thousand rows "
-    "and fell over at nine million. Each one below shows the plan Postgres chose "
-    "before the fix, the diagnosis, and the plan after."
+    "and fell over further up. Each shows the plan Postgres chose before the fix, "
+    "the diagnosis, and the plan after."
 )
 
-st.markdown(
-    f"<div class='rm-note'>Measured against <b>{data['order_count']:,} orders</b> "
-    f"({data['repeats']} runs, median reported, warm cache on both sides). "
-    f"Cold-cache numbers would look far more impressive and would mean much less — "
-    f"the comparison here is like for like.</div>",
-    unsafe_allow_html=True,
-)
+if comparable:
+    st.markdown(
+        f"<div class='rm-note'>Two environments below. <b>Hosted</b> is this live "
+        f"database — {hosted['order_count']:,} orders on a free 0.5 GB tier, and what "
+        f"the Run buttons talk to. <b>Local</b> is {full['order_count']:,} orders on a "
+        f"laptop. Every figure is the median of {hosted['repeats']} runs of the server's "
+        f"own reported execution time, warm cache on both sides — measuring from the "
+        f"client would add ~200ms of network round trip to every hosted query and bury "
+        f"the result in latency.</div>",
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(
+        f"<div class='rm-note'>Measured against <b>{hosted['order_count']:,} orders</b> "
+        f"({hosted['repeats']} runs, median reported, warm cache on both sides).</div>",
+        unsafe_allow_html=True,
+    )
 
 # --------------------------------------------------------------------- summary
 st.subheader("The five")
@@ -58,34 +96,56 @@ fig.update_layout(
     legend=dict(orientation="h", y=1.15, x=0),
     yaxis=dict(autorange="reversed"),
 )
-st.plotly_chart(fig, width='stretch')
+st.plotly_chart(fig, width="stretch")
+
+if comparable:
+    st.markdown("**The same five, on two different machines**")
+    rows = []
+    for r in res:
+        f = full_by_id.get(r["id"])
+        rows.append({
+            "Query": r["title"],
+            f"Hosted · {hosted['order_count'] / 1e6:.1f}M rows":
+                f"{r['slow_ms']:,.0f} → {r['fast_ms']:,.0f} ms  ({r['speedup']:.0f}×)",
+            f"Local · {full['order_count'] / 1e6:.1f}M rows":
+                f"{f['slow_ms']:,.0f} → {f['fast_ms']:,.0f} ms  ({f['speedup']:.0f}×)" if f else "—",
+        })
+    st.dataframe(rows, hide_index=True, width="stretch")
+    ui.note(
+        "Read these as two independent results, <b>not</b> as a scaling curve. The "
+        "hosted database holds a third of the rows and is still slower in absolute "
+        "terms, because free-tier compute with network-attached storage is a very "
+        "different machine from a local NVMe disk with 512MB of shared buffers. Row "
+        "count and hardware both change between the columns, so the difference "
+        "between them cannot be attributed to either one. What does carry across is "
+        "the finding: the same query shapes are slow on both, the same fixes work on "
+        "both, and the ratios hold. For a genuine scaling curve — identical hardware, "
+        "varying row counts — see <code>scripts/scaling.py</code>."
+    )
 
 cols = st.columns(len(res))
 for col, r in zip(cols, res):
     col.metric(r["title"].split(" for ")[0][:22], f"{r['speedup']:.0f}×",
                f"{r['slow_ms']:.0f} → {r['fast_ms']:.0f} ms", delta_color="off")
 
-worst = max(res, key=lambda r: r["slow_ms"])
-best = max(res, key=lambda r: r["speedup"])
-ui.note(
-    f"The worst offender was <b>{worst['title'].lower()}</b> at "
-    f"{worst['slow_ms']:.0f} ms; the largest win was <b>{best['speedup']:.0f}×</b> on "
-    f"{best['title'].lower()}. Four of the five needed either an index that was "
-    f"missing or a rewrite that let an existing index be used — which is usually "
-    f"where the time is."
-)
-
 st.divider()
 
 # --------------------------------------------------------------------- detail
+has_part = db.table_exists("orders_part")
+
 for i, r in enumerate(res, 1):
     st.subheader(f"{i}. {r['title']}")
     st.caption(f"**{r['question']}** — {r['lesson']}")
 
-    m = st.columns(3)
+    f = full_by_id.get(r["id"])
+    m = st.columns(4 if f else 3)
     m[0].metric("Before", f"{r['slow_ms']:,.0f} ms")
     m[1].metric("After", f"{r['fast_ms']:,.0f} ms")
     m[2].metric("Speed-up", f"{r['speedup']:.0f}×")
+    if f:
+        m[3].metric(f"Before at {full['order_count'] / 1e6:.1f}M",
+                    f"{f['slow_ms']:,.0f} ms", f"{f['speedup']:.0f}× when fixed",
+                    delta_color="off")
 
     st.markdown(f"<div class='rm-note'>{r['diagnosis']}</div>", unsafe_allow_html=True)
 
@@ -110,26 +170,58 @@ for i, r in enumerate(res, 1):
             st.caption("after")
             st.code(r["fast_plan"], language="text")
 
-    with st.expander("Run both against the live database now"):
+    needs_part = "orders_part" in (r["fast_sql"] + r["slow_sql"])
+    if needs_part and not has_part:
         st.caption(
-            "Re-runs both queries against the warehouse this instant. Timings will "
-            "differ from the recorded medians above — shared hosting, cache state, "
-            "and whoever else is on the page all move the number."
+            "The partitioned copy of the fact table is not present on the hosted "
+            "database — it would double storage on a 0.5 GB tier for one "
+            "demonstration. The plans and timings above are from the full local "
+            "build, where it exists."
         )
-        if st.button("Run", key=f"run_{r['id']}"):
-            try:
-                s = db.run(r["slow_sql"])
-                f = db.run(r["fast_sql"])
-                sm = s.attrs.get("elapsed_ms", 0)
-                fm = f.attrs.get("elapsed_ms", 0)
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Before (live)", f"{sm:,.0f} ms")
-                c2.metric("After (live)", f"{fm:,.0f} ms")
-                c3.metric("Speed-up", f"{sm / max(fm, 1e-9):.0f}×")
-                st.dataframe(f.head(8), hide_index=True, width='stretch')
-            except Exception as e:  # noqa: BLE001 - surfaced to the reader on purpose
-                st.error(f"Live run failed: {e}")
+    else:
+        with st.expander("Run both against the live database now"):
+            st.caption(
+                "Re-runs both queries against the hosted warehouse this instant. "
+                "Timings will differ from the recorded medians — shared compute, "
+                "cache state, and a database that suspends when idle all move the "
+                "number. The first run after a quiet spell is always the slowest."
+            )
+            if st.button("Run", key=f"run_{r['id']}"):
+                try:
+                    s = db.run(r["slow_sql"])
+                    fst = db.run(r["fast_sql"])
+                    sm = s.attrs.get("elapsed_ms", 0)
+                    fm = fst.attrs.get("elapsed_ms", 0)
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Before (live)", f"{sm:,.0f} ms")
+                    c2.metric("After (live)", f"{fm:,.0f} ms")
+                    c3.metric("Speed-up", f"{sm / max(fm, 1e-9):.0f}×")
+                    st.dataframe(fst.head(8), hide_index=True, width="stretch")
+                except Exception as e:  # noqa: BLE001 - surfaced to the reader on purpose
+                    st.error(f"Live run failed: {e}")
 
     st.divider()
 
-st.caption(f"Benchmarks generated {data['generated_at']} · `scripts/benchmark.py`")
+# --------------------------------------------------------------------- rollups
+st.subheader("The one an index could not fix")
+st.markdown(
+    "Every fix above is an index or a rewrite. The dashboard's own queries were a "
+    "different problem: revenue by month, revenue by brand and the cohort grid each "
+    "aggregate **every row in the table**, and an index cannot help a query that "
+    "genuinely needs all of them. At full scale those three cost 6.2s, 8.6s and 7.6s."
+)
+st.markdown(
+    "The answer there was to stop recomputing history that cannot change — "
+    "materialized rollups, refreshed on a schedule rather than on every page load. "
+    "**Five pages went from ~26s of query time to 401ms.** The trade is that the "
+    "dashboard is now eventually consistent, which for three years of closed trading "
+    "history costs nothing, and for a real-time operational view would be the wrong "
+    "call entirely."
+)
+st.code("sql/05_rollups.sql", language="text")
+
+st.caption(
+    f"Hosted benchmarks generated {hosted['generated_at']}"
+    + (f" · full-scale build {full['generated_at']}" if comparable else "")
+    + " · `scripts/benchmark.py`"
+)

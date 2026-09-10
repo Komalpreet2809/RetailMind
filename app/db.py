@@ -47,6 +47,16 @@ def run(sql: str, params: dict | None = None) -> pd.DataFrame:
             _reconnect()  # connection went stale between reruns
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def table_exists(name: str) -> bool:
+    """
+    The hosted database is a 0.5 GB free tier and omits the partitioned copy of
+    the fact table, which would double storage for one demo. Pages check before
+    offering to run anything against it.
+    """
+    return bool(run("SELECT to_regclass(%(n)s) IS NOT NULL AS ok", {"n": name}).iloc[0]["ok"])
+
+
 def explain(sql: str, params: dict | None = None) -> str:
     conn = _conn()
     with conn.cursor() as cur:

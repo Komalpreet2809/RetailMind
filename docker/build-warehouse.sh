@@ -22,8 +22,8 @@ full_page_writes = off
 # during COPY, and a small max_wal_size lets checkpoints recycle it away.
 wal_level = minimal
 max_wal_senders = 0
-max_wal_size = 1GB
-min_wal_size = 80MB
+max_wal_size = 256MB
+min_wal_size = 64MB
 CONF
 
 echo "==> start postgres"
